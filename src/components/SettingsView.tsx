@@ -4,16 +4,11 @@ import {
   CheckCircle2,
   DatabaseBackup,
   Download,
-  Eye,
-  EyeOff,
   FileSpreadsheet,
-  KeyRound,
   Save,
   Settings as SettingsIcon,
-  ShieldCheck,
   Upload,
 } from 'lucide-react';
-import { formatAuthErrorAr } from '../firebase';
 import {
   AccountRecord,
   BLUEPRINT_LIMITS,
@@ -49,10 +44,6 @@ interface SettingsViewProps {
   bookings: Booking[];
   accounts: AccountRecord[];
   canManageAccounts: boolean;
-  isBootstrappedAdmin?: boolean;
-  currentUserEmail?: string;
-  hasPasswordLinked?: boolean;
-  onSetAdminPassword?: (newPassword: string) => Promise<void>;
   onSaveSettings: (next: SystemSettings) => Promise<void>;
   onRecordBackup: () => Promise<void>;
   onRestoreBackup: (bundle: SystemBackupBundle) => Promise<{
@@ -70,10 +61,6 @@ export function SettingsView({
   bookings,
   accounts,
   canManageAccounts,
-  isBootstrappedAdmin = false,
-  currentUserEmail = '',
-  hasPasswordLinked = false,
-  onSetAdminPassword,
   onSaveSettings,
   onRecordBackup,
   onRestoreBackup,
@@ -82,13 +69,6 @@ export function SettingsView({
   const [saving, setSaving] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
-
-  const [adminPassword, setAdminPassword] = useState('');
-  const [adminPasswordConfirm, setAdminPasswordConfirm] = useState('');
-  const [showAdminPassword, setShowAdminPassword] = useState(false);
-  const [savingAdminPassword, setSavingAdminPassword] = useState(false);
-  const [adminPasswordError, setAdminPasswordError] = useState<string | null>(null);
-  const [adminPasswordSuccess, setAdminPasswordSuccess] = useState<string | null>(null);
 
   const [pendingRestore, setPendingRestore] = useState<SystemBackupBundle | null>(
     null
@@ -147,36 +127,6 @@ export function SettingsView({
       );
     } finally {
       setSaving(false);
-    }
-  };
-
-  const handleSaveAdminPassword = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!onSetAdminPassword) return;
-    setAdminPasswordError(null);
-    setAdminPasswordSuccess(null);
-
-    if (adminPassword.length < 6) {
-      setAdminPasswordError('كلمة المرور يجب أن لا تقل عن 6 أحرف.');
-      return;
-    }
-    if (adminPassword !== adminPasswordConfirm) {
-      setAdminPasswordError('كلمتا المرور غير متطابقتين.');
-      return;
-    }
-
-    setSavingAdminPassword(true);
-    try {
-      await onSetAdminPassword(adminPassword);
-      setAdminPassword('');
-      setAdminPasswordConfirm('');
-      setAdminPasswordSuccess(
-        `تم تفعيل كلمة المرور للحساب (${currentUserEmail}). يمكنك الآن تسجيل الدخول مباشرة بالبريد الإلكتروني وكلمة المرور.`
-      );
-    } catch (err) {
-      setAdminPasswordError(formatAuthErrorAr(err));
-    } finally {
-      setSavingAdminPassword(false);
     }
   };
 
@@ -588,126 +538,8 @@ export function SettingsView({
           </div>
         </form>
 
-        {/* Backup, Password & Restore Column */}
+        {/* Backup & Restore Column */}
         <div className="xl:col-span-5 space-y-5">
-          {isBootstrappedAdmin && onSetAdminPassword && (
-            <form
-              onSubmit={handleSaveAdminPassword}
-              className="bg-white border border-slate-200 rounded-xl p-6 space-y-4"
-            >
-              <div className="flex items-start gap-3">
-                <div className="w-9 h-9 rounded-lg bg-teal-50 border border-teal-200 flex items-center justify-center shrink-0 text-teal-800">
-                  <KeyRound className="w-4 h-4" />
-                </div>
-                <div>
-                  <h3 className="font-display text-base font-bold text-slate-900">
-                    تعيين كلمة مرور للدخول بالبريد الرئيسي
-                  </h3>
-                  <p className="text-xs text-slate-500 mt-0.5">
-                    فعّل أو حدّث كلمة المرور لتسجيل الدخول مباشرة بالبريد{' '}
-                    <span className="font-mono-num text-slate-800" dir="ltr">
-                      {currentUserEmail}
-                    </span>{' '}
-                    دون الحاجة لنافذة Google في كل مرة.
-                  </p>
-                </div>
-              </div>
-
-              <div className="bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-xs text-slate-700 flex items-center justify-between gap-2">
-                <span className="inline-flex items-center gap-1.5">
-                  <ShieldCheck className="w-4 h-4 text-teal-700 shrink-0" />
-                  <span>حالة الدخول بكلمة المرور:</span>
-                </span>
-                <span
-                  className={`font-semibold ${
-                    hasPasswordLinked ? 'text-emerald-700' : 'text-amber-700'
-                  }`}
-                >
-                  {hasPasswordLinked ? 'مفعّل' : 'غير مربوط بعد'}
-                </span>
-              </div>
-
-              {adminPasswordError && (
-                <div className="bg-red-50 border border-red-200 rounded-lg px-3.5 py-2.5 text-xs text-red-800 flex items-center gap-2">
-                  <AlertCircle className="w-4 h-4 shrink-0" />
-                  <span>{adminPasswordError}</span>
-                </div>
-              )}
-
-              {adminPasswordSuccess && (
-                <div className="bg-emerald-50 border border-emerald-200 rounded-lg px-3.5 py-2.5 text-xs text-emerald-800 flex items-center gap-2 leading-relaxed">
-                  <CheckCircle2 className="w-4 h-4 shrink-0" />
-                  <span>{adminPasswordSuccess}</span>
-                </div>
-              )}
-
-              <div className="space-y-3">
-                <div>
-                  <label className="block text-xs font-medium text-slate-700 mb-1.5">
-                    كلمة المرور الجديدة (6 أحرف على الأقل)
-                  </label>
-                  <div className="relative">
-                    <input
-                      type={showAdminPassword ? 'text' : 'password'}
-                      dir="ltr"
-                      minLength={6}
-                      value={adminPassword}
-                      onChange={(e) => setAdminPassword(e.target.value)}
-                      placeholder="••••••••"
-                      className="w-full rounded-lg border border-slate-200 bg-white pl-9 pr-3 py-2 text-sm font-mono-num text-slate-900 text-left focus:outline-none focus:border-teal-700"
-                      required
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowAdminPassword((prev) => !prev)}
-                      aria-label={
-                        showAdminPassword ? 'إخفاء كلمة المرور' : 'إظهار كلمة المرور'
-                      }
-                      className="absolute left-2.5 top-1/2 -translate-y-1/2 p-1 text-slate-400 hover:text-slate-700 cursor-pointer"
-                    >
-                      {showAdminPassword ? (
-                        <EyeOff className="w-4 h-4" />
-                      ) : (
-                        <Eye className="w-4 h-4" />
-                      )}
-                    </button>
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-xs font-medium text-slate-700 mb-1.5">
-                    تأكيد كلمة المرور
-                  </label>
-                  <input
-                    type={showAdminPassword ? 'text' : 'password'}
-                    dir="ltr"
-                    minLength={6}
-                    value={adminPasswordConfirm}
-                    onChange={(e) => setAdminPasswordConfirm(e.target.value)}
-                    placeholder="••••••••"
-                    className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-mono-num text-slate-900 text-left focus:outline-none focus:border-teal-700"
-                    required
-                  />
-                </div>
-              </div>
-
-              <button
-                type="submit"
-                disabled={savingAdminPassword}
-                className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-teal-700 text-white text-xs font-semibold hover:bg-teal-800 disabled:opacity-50 transition-colors cursor-pointer"
-              >
-                <KeyRound className="w-4 h-4" />
-                <span>
-                  {savingAdminPassword
-                    ? 'جاري الحفظ...'
-                    : hasPasswordLinked
-                      ? 'تحديث كلمة مرور البريد الرئيسي'
-                      : 'حفظ وتفعيل الدخول بكلمة المرور'}
-                </span>
-              </button>
-            </form>
-          )}
-
           {/* Backup Export Card */}
           <div className="bg-white border border-slate-200 rounded-xl p-6 space-y-4">
             <div className="flex items-start gap-3">

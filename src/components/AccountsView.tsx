@@ -9,6 +9,7 @@ import {
   Search,
   ShieldCheck,
   Trash2,
+  Users,
   X,
 } from 'lucide-react';
 import { AccountRecord, UserRole } from '../types';
@@ -32,6 +33,7 @@ interface AccountsViewProps {
   lastCreatedCredentials?: CreatedCredentialsNotice | null;
   onDismissCreatedCredentials?: () => void;
   onAddAccount: () => void;
+  onCreateUnifiedViewer?: () => void;
   onEditAccount: (account: AccountRecord) => void;
   onToggleStatus: (account: AccountRecord) => Promise<void>;
   onDeleteAccount: (account: AccountRecord) => Promise<void>;
@@ -43,6 +45,7 @@ export function AccountsView({
   lastCreatedCredentials,
   onDismissCreatedCredentials,
   onAddAccount,
+  onCreateUnifiedViewer,
   onEditAccount,
   onToggleStatus,
   onDeleteAccount,
@@ -60,6 +63,11 @@ export function AccountsView({
       suspended: accounts.filter((a) => a.status === 'suspended').length,
     };
   }, [accounts]);
+
+  const hasActiveViewerAccount = useMemo(
+    () => accounts.some((a) => a.role === 'viewer' && a.status === 'active'),
+    [accounts]
+  );
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -138,6 +146,36 @@ export function AccountsView({
           <span>إضافة حساب جديد</span>
         </button>
       </div>
+
+      {/* Unified Viewer Quick-Setup Banner */}
+      {!hasActiveViewerAccount && onCreateUnifiedViewer && (
+        <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="flex items-start gap-3">
+            <div className="w-9 h-9 rounded-lg bg-white border border-slate-200 flex items-center justify-center shrink-0 text-teal-800">
+              <Users className="w-4 h-4" />
+            </div>
+            <div>
+              <div className="text-xs font-bold text-slate-900">
+                إنشاء حساب اطلاع موحّد للمنتسبين
+              </div>
+              <p className="text-[11px] text-slate-600 mt-0.5 leading-relaxed">
+                بدلاً من إضافة حساب منفصل لكل منتسب، أنشئ حساباً واحداً بصلاحية «اطلاع فقط» (مثل اليوزر{' '}
+                <span className="font-mono-num font-semibold text-slate-800" dir="ltr">courses</span>
+                ) ومشاركته مع المنتسبين للاطلاع على جدول الدورات.
+              </p>
+            </div>
+          </div>
+
+          <button
+            type="button"
+            onClick={onCreateUnifiedViewer}
+            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-slate-900 text-white text-xs font-semibold hover:bg-slate-800 transition-colors whitespace-nowrap shrink-0 cursor-pointer self-start sm:self-center"
+          >
+            <Plus className="w-3.5 h-3.5" />
+            <span>إنشاء حساب اطلاع موحّد</span>
+          </button>
+        </div>
+      )}
 
       {/* Newly Created Credentials Notice */}
       {lastCreatedCredentials && (
@@ -269,7 +307,7 @@ export function AccountsView({
               : 'لا توجد حسابات مطابقة لمعايير البحث'}
           </p>
           <p className="text-xs text-slate-500 max-w-md mx-auto">
-            أضف البريد الإلكتروني لحساب Google الخاص بمسؤول كل شعبة وحدد صلاحياته، أو أضف حسابات المنتسبين للاطلاع على جدول الدورات.
+            أضف حساباً بسيطاً (يوزر وكلمة مرور) لمسؤول كل شعبة حسب صلاحياته، أو أنشئ حساب اطلاع موحّد للمنتسبين للاطلاع على جدول الدورات.
           </p>
           {accounts.length === 0 && (
             <div className="pt-1">

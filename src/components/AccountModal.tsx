@@ -57,7 +57,7 @@ export function AccountModal({
 
   useEffect(() => {
     setForm(initialDraft);
-    setShowPassword(false);
+    setShowPassword(!initialDraft.id);
     setErrorMsg(null);
   }, [initialDraft, isOpen]);
 
@@ -199,44 +199,26 @@ export function AccountModal({
           )}
 
           {!isEditing ? (
-            <div className="space-y-3">
-              <span className="block text-xs font-medium text-slate-700">
-                طريقة تسجيل الدخول للحساب
+            <div className="flex flex-wrap items-center justify-between gap-2 bg-slate-50 border border-slate-200 rounded-lg px-4 py-2.5">
+              <span className="text-xs font-semibold text-slate-800">
+                {form.authType === 'credentials'
+                  ? 'حساب دخول مباشر (يوزر + كلمة مرور)'
+                  : 'حساب مرتبط ببريد Google'}
               </span>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 p-1 bg-slate-100 rounded-lg">
-                <button
-                  type="button"
-                  onClick={() =>
-                    setForm((prev) => ({
-                      ...prev,
-                      authType: 'credentials',
-                    }))
-                  }
-                  className={`px-3 py-2 rounded-md text-xs font-semibold transition-colors whitespace-nowrap cursor-pointer ${
-                    form.authType === 'credentials'
-                      ? 'bg-white text-slate-900 shadow-sm'
-                      : 'text-slate-600 hover:text-slate-900'
-                  }`}
-                >
-                  دخول عادي (يوزر + كلمة مرور)
-                </button>
-                <button
-                  type="button"
-                  onClick={() =>
-                    setForm((prev) => ({
-                      ...prev,
-                      authType: 'google',
-                    }))
-                  }
-                  className={`px-3 py-2 rounded-md text-xs font-semibold transition-colors whitespace-nowrap cursor-pointer ${
-                    form.authType === 'google'
-                      ? 'bg-white text-slate-900 shadow-sm'
-                      : 'text-slate-600 hover:text-slate-900'
-                  }`}
-                >
-                  تسجيل عبر بريد Google
-                </button>
-              </div>
+              <button
+                type="button"
+                onClick={() =>
+                  setForm((prev) => ({
+                    ...prev,
+                    authType: prev.authType === 'credentials' ? 'google' : 'credentials',
+                  }))
+                }
+                className="text-[11px] font-semibold text-teal-700 hover:text-teal-800 cursor-pointer"
+              >
+                {form.authType === 'credentials'
+                  ? 'أو ربط بريد Google بدلاً من اليوزر'
+                  : 'العودة إلى يوزر وكلمة مرور'}
+              </button>
             </div>
           ) : (
             <div className="bg-slate-50 border border-slate-200 rounded-lg px-4 py-3 flex flex-wrap items-center justify-between gap-2 text-xs">

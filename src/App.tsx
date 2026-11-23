@@ -8,14 +8,11 @@ import {
   Clock,
   FileBarChart2,
   History,
-  KeyRound,
   Layers,
   LogOut,
-  MailCheck,
   Menu,
   Pencil,
   Plus,
-  RefreshCw,
   Settings as SettingsIcon,
   ShieldCheck,
   Trash2,
@@ -65,15 +62,11 @@ import {
 } from './data/seedData';
 import {
   OperationType,
-  attachOrUpdatePasswordForCurrentUser,
   auth,
   db,
   formatAuthErrorAr,
   handleFirestoreError,
-  linkGoogleToCurrentUser,
   provisionCredentialsUser,
-  reloadCurrentUserSession,
-  sendCurrentUserVerificationEmail,
   signInWithCredentials,
   signInWithGoogle,
   signOutUser,
@@ -97,6 +90,7 @@ import {
   ROLE_LABEL_AR,
   defaultPermissionsForRole,
   emailToAccountId,
+  generateReadablePassword,
   isInternalAuthEmail,
   resolveEffectiveAccess,
   usernameToAuthEmail,
@@ -120,11 +114,6 @@ function DashboardWorkspace() {
   const [authReady, setAuthReady] = useState(false);
   const [user, setUser] = useState<User | null>(null);
   const [authError, setAuthError] = useState<string | null>(null);
-  const [isEmailVerified, setIsEmailVerified] = useState(false);
-  const [authTick, setAuthTick] = useState(0);
-  const [verificationBusy, setVerificationBusy] = useState(false);
-  const [verificationNotice, setVerificationNotice] = useState<string | null>(null);
-  const [verificationError, setVerificationError] = useState<string | null>(null);
   const [hasAdminsDoc, setHasAdminsDoc] = useState(false);
   const [myAccountDoc, setMyAccountDoc] = useState<AccountRecord | null>(null);
   const [myAccountResolved, setMyAccountResolved] = useState(false);
@@ -220,45 +209,39 @@ function DashboardWorkspace() {
 
   const isPasswordUser = useMemo(
     () => Boolean(user?.providerData?.some((p) => p.providerId === 'password')),
-    [user, authTick]
+    [user]
   );
-
-  const effectiveEmailVerified = Boolean(user?.emailVerified || isEmailVerified);
 
   const isUnverifiedBootstrappedAdmin = useMemo(
     () =>
       Boolean(
         user?.email &&
           user.email.toLowerCase() === BOOTSTRAPPED_ADMIN_EMAIL &&
-          !effectiveEmailVerified
+          !user.emailVerified
       ),
-    [user, effectiveEmailVerified]
+    [user]
   );
 
   const access = useMemo(
     () =>
       resolveEffectiveAccess({
         email: user?.email,
-        emailVerified: effectiveEmailVerified,
+        emailVerified: Boolean(user?.emailVerified),
         isPasswordProvider: isPasswordUser,
         hasAdminsDoc,
         account: myAccountDoc,
         settings: systemSettings,
       }),
-    [user, effectiveEmailVerified, isPasswordUser, hasAdminsDoc, myAccountDoc, systemSettings, authTick]
+    [user, isPasswordUser, hasAdminsDoc, myAccountDoc, systemSettings]
   );
 
   // Auth listener & admin doc check
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       setUser(firebaseUser);
-      setIsEmailVerified(Boolean(firebaseUser?.emailVerified));
-      setVerificationError(null);
-      setVerificationNotice(null);
       setAuthReady(true);
 
       if (!firebaseUser) {
-        setIsEmailVerified(false);
         setHasAdminsDoc(false);
         setMyAccountDoc(null);
         setMyAccountResolved(false);
@@ -397,10 +380,9 @@ function DashboardWorkspace() {
     if (!authReady || !user) return;
 
     const isPwd = user.providerData.some((p) => p.providerId === 'password');
-    const verifiedNow = Boolean(user.emailVerified || isEmailVerified);
+    const verifiedNow = Boolean(user.emailVerified);
     const isMainAdminEmail = user.email?.toLowerCase() === BOOTSTRAPPED_ADMIN_EMAIL;
 
-    // Wait until the bootstrapped admin completes one-time email verification before querying Firestore
     if (isMainAdminEmail && !verifiedNow) {
       setMyAccountDoc(null);
       setMyAccountResolved(true);
@@ -698,7 +680,7 @@ function DashboardWorkspace() {
       unsubAuditPrimary();
       unsubAuditOwn();
     };
-  }, [authReady, user, isEmailVerified, authTick, seedDefaultWorkspace, seedDefaultDepartments]);
+  }, [authReady, user, seedDefaultWorkspace, seedDefaultDepartments]);
 
   const recordAuditLog = useCallback(
     async (params: {
@@ -715,7 +697,7 @@ function DashboardWorkspace() {
       );
       if (
         !user ||
-        (!effectiveEmailVerified && !isCredentialActive) ||
+        (!user.emailVerified && !isCredentialActive) ||
         access.isSuspended ||
         access.role === 'viewer'
       ) {
@@ -776,89 +758,19 @@ function DashboardWorkspace() {
 
   const handleCredentialsSignIn = async (identifier: string, password: string) => {
     setAuthError(null);
+    const cleanId = identifier.trim().toLowerCase();
     try {
       const authEmail = usernameToAuthEmail(identifier);
       await signInWithCredentials(authEmail, password);
     } catch (err) {
+      if (cleanId === BOOTSTRAPPED_ADMIN_EMAIL) {
+        setAuthError(
+          `لحساب الإدارة الرئيسي (${BOOTSTRAPPED_ADMIN_EMAIL})، يرجى الضغط على زر «دخول الإدارة بحساب Google» بالأسفل للدخول بضغطة واحدة.`
+        );
+        return;
+      }
       setAuthError(formatAuthErrorAr(err));
     }
-  };
-
-  const handleVerifyBootstrappedViaGoogle = async () => {
-    setVerificationError(null);
-    setVerificationNotice(null);
-    setVerificationBusy(true);
-    try {
-      await linkGoogleToCurrentUser();
-      const verified = await reloadCurrentUserSession();
-      setIsEmailVerified(verified);
-      setAuthTick((t) => t + 1);
-      showToast('تم توثيق الحساب الرئيسي وربطه بنجاح');
-    } catch (err) {
-      const code =
-        typeof err === 'object' && err !== null && 'code' in err
-          ? String((err as { code?: unknown }).code || '')
-          : '';
-      if (code === 'auth/credential-already-in-use') {
-        try {
-          await signInWithGoogle();
-          setIsEmailVerified(true);
-          setAuthTick((t) => t + 1);
-          showToast('تم تسجيل الدخول وتوثيق الحساب الرئيسي عبر Google');
-          return;
-        } catch (googleErr) {
-          setVerificationError(formatAuthErrorAr(googleErr));
-          return;
-        }
-      }
-      setVerificationError(formatAuthErrorAr(err));
-    } finally {
-      setVerificationBusy(false);
-    }
-  };
-
-  const handleSendBootstrappedVerificationEmail = async () => {
-    setVerificationError(null);
-    setVerificationNotice(null);
-    setVerificationBusy(true);
-    try {
-      await sendCurrentUserVerificationEmail();
-      setVerificationNotice(
-        `تم إرسال رابط التفعيل إلى البريد ${BOOTSTRAPPED_ADMIN_EMAIL}. يرجى فتح الرسالة والضغط على الرابط ثم النقر على «تحققت من الرابط — دخول الآن».`
-      );
-    } catch (err) {
-      setVerificationError(formatAuthErrorAr(err));
-    } finally {
-      setVerificationBusy(false);
-    }
-  };
-
-  const handleCheckBootstrappedEmailVerified = async () => {
-    setVerificationError(null);
-    setVerificationNotice(null);
-    setVerificationBusy(true);
-    try {
-      const verified = await reloadCurrentUserSession();
-      if (verified) {
-        setIsEmailVerified(true);
-        setAuthTick((t) => t + 1);
-        showToast('تم التحقق من البريد الرئيسي وتفعيل صلاحيات الإدارة');
-      } else {
-        setVerificationError(
-          'لم يتم تأكيد رابط التفعيل في البريد بعد. يرجى فتح البريد والضغط على رابط التفعيل أو استخدام التوثيق الفوري عبر Google.'
-        );
-      }
-    } catch (err) {
-      setVerificationError(formatAuthErrorAr(err));
-    } finally {
-      setVerificationBusy(false);
-    }
-  };
-
-  const handleSetMainAdminPassword = async (newPassword: string) => {
-    await attachOrUpdatePasswordForCurrentUser(newPassword);
-    setAuthTick((t) => t + 1);
-    showToast('تم حفظ كلمة مرور الدخول بالبريد الرئيسي بنجاح');
   };
 
   // KPI metrics for selectedDate
@@ -1368,6 +1280,25 @@ function DashboardWorkspace() {
     setAccountModalOpen(true);
   };
 
+  const openUnifiedViewerAccount = () => {
+    const existingCourses = accounts.some(
+      (a) => (a.username || '').toLowerCase() === 'courses'
+    );
+    setAccountDraft({
+      email: '',
+      username: existingCourses ? `courses_${accounts.length + 1}` : 'courses',
+      authType: 'credentials',
+      password: generateReadablePassword(8),
+      displayName: 'حساب اطلاع المنتسبين',
+      branchName: 'جميع منتسبي المجمع',
+      role: 'viewer',
+      status: 'active',
+      permissions: defaultPermissionsForRole('viewer'),
+      notes: 'حساب موحّد للمنتسبين للاطلاع على جدول الدورات والقاعات فقط',
+    });
+    setAccountModalOpen(true);
+  };
+
   const openEditAccount = (acc: AccountRecord) => {
     setAccountDraft({
       id: acc.id,
@@ -1823,73 +1754,35 @@ function DashboardWorkspace() {
   if (isUnverifiedBootstrappedAdmin) {
     return (
       <div className="min-h-screen bg-slate-50 flex items-center justify-center p-6" dir="rtl">
-        <div className="bg-white border border-slate-200 rounded-xl max-w-md w-full p-6 space-y-5">
-          <div className="text-center space-y-3">
-            <div className="w-12 h-12 rounded-xl bg-teal-50 border border-teal-200 text-teal-700 flex items-center justify-center mx-auto">
-              <MailCheck className="w-6 h-6" />
-            </div>
-            <h1 className="font-display text-lg font-bold text-slate-900">
-              توثيق البريد الإلكتروني للحساب الرئيسي
-            </h1>
-            <p className="text-xs text-slate-600 leading-relaxed">
-              تم التحقق من كلمة مرور الحساب الرئيسي، ولحماية صلاحيات الإدارة الأعلى تتطلب قاعدة البيانات توثيق ملكية هذا البريد لمرة واحدة فقط:
-            </p>
-            <div className="bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-xs font-mono-num text-slate-800" dir="ltr">
-              {user.email}
-            </div>
+        <div className="bg-white border border-slate-200 rounded-xl max-w-md w-full p-6 text-center space-y-4">
+          <div className="w-12 h-12 rounded-xl bg-teal-50 border border-teal-200 text-teal-700 flex items-center justify-center mx-auto">
+            <ShieldCheck className="w-6 h-6" />
           </div>
-
-          {verificationError && (
-            <div className="bg-red-50 border border-red-200 rounded-lg px-3.5 py-2.5 text-xs text-red-800 leading-relaxed">
-              {verificationError}
-            </div>
-          )}
-
-          {verificationNotice && (
-            <div className="bg-emerald-50 border border-emerald-200 rounded-lg px-3.5 py-2.5 text-xs text-emerald-800 leading-relaxed">
-              {verificationNotice}
-            </div>
-          )}
-
-          <div className="space-y-2.5">
+          <h1 className="font-display text-lg font-bold text-slate-900">
+            دخول الإدارة عبر حساب Google
+          </h1>
+          <p className="text-xs text-slate-600 leading-relaxed">
+            للدخول إلى الحساب الرئيسي بصلاحيات المدير الكاملة بدون خطوات تحقق معقدة، يرجى الضغط على زر الدخول بحساب Google أدناه.
+          </p>
+          <div className="bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-xs font-mono-num text-slate-800" dir="ltr">
+            {user.email}
+          </div>
+          <div className="space-y-2.5 pt-1">
             <button
               type="button"
-              disabled={verificationBusy}
-              onClick={() => void handleVerifyBootstrappedViaGoogle()}
-              className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-teal-700 text-white text-xs font-semibold hover:bg-teal-800 disabled:opacity-60 cursor-pointer"
+              onClick={() => void handleSignIn()}
+              className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-teal-700 text-white text-xs font-semibold hover:bg-teal-800 cursor-pointer"
             >
               <ShieldCheck className="w-4 h-4" />
-              <span>توثيق فوري عبر Google (مرة واحدة)</span>
+              <span>دخول الإدارة بحساب Google</span>
             </button>
-
             <button
               type="button"
-              disabled={verificationBusy}
-              onClick={() => void handleSendBootstrappedVerificationEmail()}
-              className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg border border-slate-200 bg-white text-slate-800 text-xs font-semibold hover:bg-slate-50 disabled:opacity-60 cursor-pointer"
-            >
-              <KeyRound className="w-4 h-4 text-teal-700" />
-              <span>إرسال رابط التفعيل إلى البريد</span>
-            </button>
-
-            <button
-              type="button"
-              disabled={verificationBusy}
-              onClick={() => void handleCheckBootstrappedEmailVerified()}
-              className="w-full inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg border border-teal-200 bg-teal-50 text-teal-900 text-xs font-semibold hover:bg-teal-100 disabled:opacity-60 cursor-pointer"
-            >
-              <RefreshCw className="w-3.5 h-3.5" />
-              <span>تحققت من الرابط — دخول الآن</span>
-            </button>
-
-            <button
-              type="button"
-              disabled={verificationBusy}
               onClick={() => void signOutUser()}
-              className="w-full inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-slate-900 text-white text-xs font-semibold hover:bg-slate-800 cursor-pointer"
+              className="w-full inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg border border-slate-200 bg-white text-slate-700 text-xs font-semibold hover:bg-slate-50 cursor-pointer"
             >
               <LogOut className="w-4 h-4" />
-              <span>تسجيل الخروج</span>
+              <span>العودة إلى شاشة الدخول</span>
             </button>
           </div>
         </div>
@@ -2260,6 +2153,7 @@ function DashboardWorkspace() {
               lastCreatedCredentials={lastCreatedCredentials}
               onDismissCreatedCredentials={() => setLastCreatedCredentials(null)}
               onAddAccount={openAddAccount}
+              onCreateUnifiedViewer={openUnifiedViewerAccount}
               onEditAccount={openEditAccount}
               onToggleStatus={handleToggleAccountStatus}
               onDeleteAccount={handleDeleteAccount}
@@ -2274,12 +2168,6 @@ function DashboardWorkspace() {
               bookings={bookings}
               accounts={accounts}
               canManageAccounts={access.canManageAccounts}
-              isBootstrappedAdmin={access.isBootstrappedAdmin}
-              currentUserEmail={user.email || ''}
-              hasPasswordLinked={isPasswordUser}
-              onSetAdminPassword={
-                access.isBootstrappedAdmin ? handleSetMainAdminPassword : undefined
-              }
               onSaveSettings={persistSettingsDoc}
               onRecordBackup={handleRecordBackup}
               onRestoreBackup={handleRestoreBackup}

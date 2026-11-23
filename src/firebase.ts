@@ -1,17 +1,11 @@
 import { getApps, initializeApp } from 'firebase/app';
 import {
-  EmailAuthProvider,
   GoogleAuthProvider,
   createUserWithEmailAndPassword,
   getAuth,
-  linkWithCredential,
-  linkWithPopup,
-  reload,
-  sendEmailVerification,
   signInWithEmailAndPassword,
   signInWithPopup,
   signOut,
-  updatePassword,
   updateProfile,
 } from 'firebase/auth';
 import { doc, getDocFromServer, getFirestore } from 'firebase/firestore';
@@ -182,45 +176,6 @@ export function formatAuthErrorAr(err: unknown): string {
     return 'طريقة الدخول هذه مفعلة ومربوطة مسبقاً بهذا الحساب.';
   }
   return msg ? `تعذر إتمام العملية: ${msg}` : 'حدث خطأ غير متوقع أثناء المصادقة.';
-}
-
-export async function sendCurrentUserVerificationEmail() {
-  if (!auth.currentUser) {
-    throw new Error('لا توجد جلسة مستخدم نشطة.');
-  }
-  await sendEmailVerification(auth.currentUser);
-}
-
-export async function reloadCurrentUserSession(): Promise<boolean> {
-  if (!auth.currentUser) return false;
-  await reload(auth.currentUser);
-  await auth.currentUser.getIdToken(true);
-  return Boolean(auth.currentUser.emailVerified);
-}
-
-export async function linkGoogleToCurrentUser() {
-  if (!auth.currentUser) {
-    throw new Error('لا توجد جلسة مستخدم نشطة.');
-  }
-  const result = await linkWithPopup(auth.currentUser, googleProvider);
-  await result.user.getIdToken(true);
-  return result;
-}
-
-export async function attachOrUpdatePasswordForCurrentUser(newPassword: string) {
-  const currentUser = auth.currentUser;
-  if (!currentUser || !currentUser.email) {
-    throw new Error('لا توجد جلسة مستخدم نشطة.');
-  }
-  const hasPasswordProvider = currentUser.providerData.some(
-    (p) => p.providerId === 'password'
-  );
-  if (hasPasswordProvider) {
-    await updatePassword(currentUser, newPassword);
-  } else {
-    const credential = EmailAuthProvider.credential(currentUser.email, newPassword);
-    await linkWithCredential(currentUser, credential);
-  }
 }
 
 export async function signOutUser() {
