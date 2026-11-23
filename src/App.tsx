@@ -2297,6 +2297,7 @@ function DashboardWorkspace() {
             <AccountsView
               accounts={accounts}
               departments={departments}
+              bookings={bookings}
               isLoading={loadingAccounts}
               lastCreatedCredentials={lastCreatedCredentials}
               onDismissCreatedCredentials={() => setLastCreatedCredentials(null)}
