@@ -1,0 +1,549 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Global default-deny safety net
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // --- Primitive Helpers ---
+    function isValidId(id) {
+      return id is string && id.size() >= 1 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isVerified() {
+      return isSignedIn() && request.auth.token.email_verified == true;
+    }
+
+    function hasVerifiedEmail() {
+      return isVerified() &&
+        request.auth.token.email is string &&
+        request.auth.token.email.size() >= 3 &&
+        request.auth.token.email.size() <= 160;
+    }
+
+    function isBootstrappedAdmin() {
+      return isVerified() && request.auth.token.email == 'control.mogma@gmail.com';
+    }
+
+    function accountDocId() {
+      return request.auth.token.email.lower().replace('[^a-zA-Z0-9_\\-]', '_');
+    }
+
+    function hasAccountDoc() {
+      return hasVerifiedEmail() && exists(/databases/$(database)/documents/accounts/$(accountDocId()));
+    }
+
+    function myAccount() {
+      return get(/databases/$(database)/documents/accounts/$(accountDocId())).data;
+    }
+
+    function isSuspendedAccount() {
+      return hasAccountDoc() && myAccount().status == 'suspended';
+    }
+
+    function isViewerOnly() {
+      return hasAccountDoc() && myAccount().status == 'active' && myAccount().role == 'viewer';
+    }
+
+    function isAdmin() {
+      return isBootstrappedAdmin() ||
+        (isVerified() && exists(/databases/$(database)/documents/admins/$(request.auth.uid))) ||
+        (hasAccountDoc() && myAccount().status == 'active' && myAccount().role == 'admin');
+    }
+
+    function hasPermission(perm) {
+      return isAdmin() || (
+        hasAccountDoc() &&
+        myAccount().status == 'active' &&
+        myAccount().role == 'branch_supervisor' &&
+        myAccount().permissions[perm] == true
+      );
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    // --- Entity Validation Blueprints (No existing() or diff() inside) ---
+    function isValidClassroom(data) {
+      return data.keys().hasAll([
+        'id', 'name', 'code', 'floor', 'capacity', 'equipment',
+        'status', 'imageUrl', 'notes', 'createdBy', 'createdAt', 'updatedAt'
+      ]) &&
+      data.keys().hasOnly([
+        'id', 'name', 'code', 'floor', 'capacity', 'equipment',
+        'status', 'imageUrl', 'notes', 'createdBy', 'createdAt', 'updatedAt'
+      ]) &&
+      isValidId(data.id) &&
+      data.name is string && data.name.size() >= 2 && data.name.size() <= 100 &&
+      data.code is string && data.code.size() >= 2 && data.code.size() <= 24 &&
+      data.floor is string && data.floor.size() >= 1 && data.floor.size() <= 40 &&
+      data.capacity is int && data.capacity >= 1 && data.capacity <= 500 &&
+      data.equipment is list && data.equipment.size() >= 1 && data.equipment.size() <= 10 &&
+      data.equipment[0] is string && data.equipment[0].size() >= 1 && data.equipment[0].size() <= 60 &&
+      data.status in ['available', 'maintenance'] &&
+      data.imageUrl is string && data.imageUrl.size() <= 300 &&
+      data.notes is string && data.notes.size() <= 300 &&
+      data.createdBy is string && data.createdBy.size() >= 1 && data.createdBy.size() <= 128 &&
+      data.createdAt is timestamp &&
+      data.updatedAt is timestamp;
+    }
+
+    function isValidBooking(data) {
+      return data.keys().hasAll([
+        'id', 'roomId', 'roomName', 'courseTitle', 'instructorName',
+        'department', 'bookingType', 'date', 'startTime', 'endTime',
+        'attendeesCount', 'status', 'notes', 'creatorId', 'creatorName',
+        'createdAt', 'updatedAt'
+      ]) &&
+      data.keys().hasOnly([
+        'id', 'roomId', 'roomName', 'courseTitle', 'instructorName',
+        'department', 'bookingType', 'date', 'startTime', 'endTime',
+        'attendeesCount', 'status', 'notes', 'creatorId', 'creatorName',
+        'createdAt', 'updatedAt'
+      ]) &&
+      isValidId(data.id) &&
+      isValidId(data.roomId) &&
+      data.roomName is string && data.roomName.size() >= 2 && data.roomName.size() <= 100 &&
+      data.courseTitle is string && data.courseTitle.size() >= 2 && data.courseTitle.size() <= 120 &&
+      data.instructorName is string && data.instructorName.size() >= 2 && data.instructorName.size() <= 80 &&
+      data.department is string && data.department.size() >= 2 && data.department.size() <= 80 &&
+      data.bookingType in ['lecture', 'workshop', 'exam', 'seminar'] &&
+      data.date is string && data.date.size() == 10 && data.date.matches('^\\d{4}-\\d{2}-\\d{2}$') &&
+      data.startTime is string && data.startTime.size() == 5 && data.startTime.matches('^([01]\\d|2[0-3]):[0-5]\\d$') &&
+      data.endTime is string && data.endTime.size() == 5 && data.endTime.matches('^([01]\\d|2[0-3]):[0-5]\\d$') &&
+      data.startTime < data.endTime &&
+      data.attendeesCount is int && data.attendeesCount >= 1 && data.attendeesCount <= 500 &&
+      data.status in ['pending', 'confirmed', 'rejected', 'cancelled'] &&
+      data.notes is string && data.notes.size() <= 300 &&
+      data.creatorId is string && data.creatorId.size() >= 1 && data.creatorId.size() <= 128 &&
+      data.creatorName is string && data.creatorName.size() >= 1 && data.creatorName.size() <= 80 &&
+      data.createdAt is timestamp &&
+      data.updatedAt is timestamp;
+    }
+
+    function isValidUserPrivate(data, userId) {
+      return data.keys().hasAll([
+        'uid', 'email', 'displayName', 'photoURL', 'department', 'role', 'createdAt', 'updatedAt'
+      ]) &&
+      data.keys().hasOnly([
+        'uid', 'email', 'displayName', 'photoURL', 'department', 'role', 'createdAt', 'updatedAt'
+      ]) &&
+      data.uid == userId &&
+      data.email is string && data.email.size() <= 160 &&
+      data.displayName is string && data.displayName.size() <= 80 &&
+      data.photoURL is string && data.photoURL.size() <= 300 &&
+      data.department is string && data.department.size() <= 80 &&
+      data.role in ['admin', 'branch_supervisor', 'coordinator', 'viewer'] &&
+      data.createdAt is timestamp &&
+      data.updatedAt is timestamp;
+    }
+
+    function isValidAdminRecord(data, adminId) {
+      return data.keys().hasAll(['uid', 'grantedBy', 'createdAt']) &&
+      data.keys().hasOnly(['uid', 'grantedBy', 'createdAt']) &&
+      data.uid == adminId &&
+      data.grantedBy is string && data.grantedBy.size() >= 1 && data.grantedBy.size() <= 128 &&
+      data.createdAt is timestamp;
+    }
+
+    function isValidDepartment(data) {
+      return data.keys().hasAll([
+        'id', 'name', 'code', 'headName', 'sector', 'status', 'notes', 'createdBy', 'createdAt', 'updatedAt'
+      ]) &&
+      data.keys().hasOnly([
+        'id', 'name', 'code', 'headName', 'sector', 'status', 'notes', 'createdBy', 'createdAt', 'updatedAt'
+      ]) &&
+      isValidId(data.id) &&
+      data.name is string && data.name.size() >= 2 && data.name.size() <= 80 &&
+      data.code is string && data.code.size() >= 2 && data.code.size() <= 24 &&
+      data.headName is string && data.headName.size() <= 80 &&
+      data.sector is string && data.sector.size() <= 80 &&
+      data.status in ['active', 'inactive'] &&
+      data.notes is string && data.notes.size() <= 300 &&
+      data.createdBy is string && data.createdBy.size() >= 1 && data.createdBy.size() <= 128 &&
+      data.createdAt is timestamp &&
+      data.updatedAt is timestamp;
+    }
+
+    function isValidPermissions(perms) {
+      return perms is map &&
+        perms.keys().hasAll([
+          'approveBookings', 'manageBookings', 'manageClassrooms',
+          'manageDepartments', 'viewReports', 'manageSettings'
+        ]) &&
+        perms.keys().hasOnly([
+          'approveBookings', 'manageBookings', 'manageClassrooms',
+          'manageDepartments', 'viewReports', 'manageSettings'
+        ]) &&
+        perms.approveBookings is bool &&
+        perms.manageBookings is bool &&
+        perms.manageClassrooms is bool &&
+        perms.manageDepartments is bool &&
+        perms.viewReports is bool &&
+        perms.manageSettings is bool;
+    }
+
+    function isValidAccount(data) {
+      return data.keys().hasAll([
+        'id', 'email', 'displayName', 'branchName', 'role',
+        'status', 'permissions', 'notes', 'createdBy', 'createdAt', 'updatedAt'
+      ]) &&
+      data.keys().hasOnly([
+        'id', 'email', 'displayName', 'branchName', 'role',
+        'status', 'permissions', 'notes', 'createdBy', 'createdAt', 'updatedAt'
+      ]) &&
+      isValidId(data.id) &&
+      data.email is string && data.email.size() >= 3 && data.email.size() <= 160 &&
+      data.displayName is string && data.displayName.size() >= 2 && data.displayName.size() <= 80 &&
+      data.branchName is string && data.branchName.size() >= 1 && data.branchName.size() <= 80 &&
+      data.role in ['admin', 'branch_supervisor', 'coordinator', 'viewer'] &&
+      data.status in ['active', 'suspended'] &&
+      isValidPermissions(data.permissions) &&
+      data.notes is string && data.notes.size() <= 300 &&
+      data.createdBy is string && data.createdBy.size() >= 1 && data.createdBy.size() <= 128 &&
+      data.createdAt is timestamp &&
+      data.updatedAt is timestamp;
+    }
+
+    function isValidSystemSettings(data) {
+      return data.keys().hasAll([
+        'id', 'organizationName', 'complexSubtitle', 'workStartHour', 'workEndHour',
+        'maxAdvanceDays', 'requireAdminApproval', 'allowWeekendBookings',
+        'strictAccountAccess', 'reportHeaderTitle', 'reportFooterNote',
+        'lastBackupAt', 'lastBackupBy', 'updatedBy', 'updatedAt'
+      ]) &&
+      data.keys().hasOnly([
+        'id', 'organizationName', 'complexSubtitle', 'workStartHour', 'workEndHour',
+        'maxAdvanceDays', 'requireAdminApproval', 'allowWeekendBookings',
+        'strictAccountAccess', 'reportHeaderTitle', 'reportFooterNote',
+        'lastBackupAt', 'lastBackupBy', 'updatedBy', 'updatedAt'
+      ]) &&
+      data.id == 'system' &&
+      data.organizationName is string && data.organizationName.size() >= 2 && data.organizationName.size() <= 100 &&
+      data.complexSubtitle is string && data.complexSubtitle.size() >= 2 && data.complexSubtitle.size() <= 120 &&
+      data.workStartHour is string && data.workStartHour.size() == 5 && data.workStartHour.matches('^([01]\\d|2[0-3]):[0-5]\\d$') &&
+      data.workEndHour is string && data.workEndHour.size() == 5 && data.workEndHour.matches('^([01]\\d|2[0-3]):[0-5]\\d$') &&
+      data.workStartHour < data.workEndHour &&
+      data.maxAdvanceDays is int && data.maxAdvanceDays >= 1 && data.maxAdvanceDays <= 365 &&
+      data.requireAdminApproval is bool &&
+      data.allowWeekendBookings is bool &&
+      data.strictAccountAccess is bool &&
+      data.reportHeaderTitle is string && data.reportHeaderTitle.size() >= 2 && data.reportHeaderTitle.size() <= 140 &&
+      data.reportFooterNote is string && data.reportFooterNote.size() <= 200 &&
+      data.lastBackupAt is string && data.lastBackupAt.size() <= 64 &&
+      data.lastBackupBy is string && data.lastBackupBy.size() <= 80 &&
+      data.updatedBy is string && data.updatedBy.size() >= 1 && data.updatedBy.size() <= 128 &&
+      data.updatedAt is timestamp;
+    }
+
+    function isValidAuditLog(data) {
+      return data.keys().hasAll([
+        'id', 'entityType', 'entityId', 'entityLabel', 'action',
+        'summary', 'actorUid', 'actorName', 'actorRole', 'branchName', 'createdAt'
+      ]) &&
+      data.keys().hasOnly([
+        'id', 'entityType', 'entityId', 'entityLabel', 'action',
+        'summary', 'actorUid', 'actorName', 'actorRole', 'branchName', 'createdAt'
+      ]) &&
+      isValidId(data.id) &&
+      data.entityType in ['booking', 'classroom', 'department', 'account', 'settings'] &&
+      isValidId(data.entityId) &&
+      data.entityLabel is string && data.entityLabel.size() >= 1 && data.entityLabel.size() <= 140 &&
+      data.action in ['create', 'update', 'approve', 'reject', 'cancel', 'delete', 'restore'] &&
+      data.summary is string && data.summary.size() >= 2 && data.summary.size() <= 240 &&
+      data.actorUid is string && data.actorUid.size() >= 1 && data.actorUid.size() <= 128 &&
+      data.actorName is string && data.actorName.size() >= 1 && data.actorName.size() <= 80 &&
+      data.actorRole in ['admin', 'branch_supervisor', 'coordinator', 'viewer'] &&
+      data.branchName is string && data.branchName.size() <= 80 &&
+      data.createdAt is timestamp;
+    }
+
+    // --- Collection: Classrooms ---
+    match /classrooms/{roomId} {
+      allow get: if isSignedIn() && isValidId(roomId);
+      allow list: if isSignedIn() && (isBootstrappedAdmin() || resource.data.status in ['available', 'maintenance']);
+
+      allow create: if isVerified() &&
+        isValidId(roomId) &&
+        isValidClassroom(incoming()) &&
+        incoming().id == roomId &&
+        incoming().createdBy == request.auth.uid &&
+        incoming().createdAt == request.time &&
+        incoming().updatedAt == request.time &&
+        hasPermission('manageClassrooms');
+
+      allow update: if isVerified() &&
+        isValidId(roomId) &&
+        isValidClassroom(incoming()) &&
+        incoming().id == existing().id &&
+        incoming().createdBy == existing().createdBy &&
+        incoming().createdAt == existing().createdAt &&
+        incoming().updatedAt == request.time &&
+        hasPermission('manageClassrooms') &&
+        incoming().diff(existing()).affectedKeys().hasOnly([
+          'name', 'code', 'floor', 'capacity', 'equipment', 'status', 'imageUrl', 'notes', 'updatedAt'
+        ]);
+
+      allow delete: if isVerified() && isValidId(roomId) && hasPermission('manageClassrooms');
+    }
+
+    // --- Collection: Bookings ---
+    match /bookings/{bookingId} {
+      allow get: if isSignedIn() && isValidId(bookingId);
+      allow list: if isSignedIn() && (
+        isBootstrappedAdmin() ||
+        resource.data.creatorId == request.auth.uid ||
+        resource.data.status in ['confirmed', 'pending']
+      );
+
+      allow create: if isVerified() &&
+        isValidId(bookingId) &&
+        isValidBooking(incoming()) &&
+        incoming().id == bookingId &&
+        incoming().creatorId == request.auth.uid &&
+        incoming().createdAt == request.time &&
+        incoming().updatedAt == request.time &&
+        !isSuspendedAccount() &&
+        !isViewerOnly() &&
+        exists(/databases/$(database)/documents/classrooms/$(incoming().roomId)) &&
+        (hasPermission('approveBookings') || incoming().status == 'pending');
+
+      allow update: if isVerified() &&
+        isValidId(bookingId) &&
+        isValidBooking(incoming()) &&
+        incoming().id == existing().id &&
+        incoming().creatorId == existing().creatorId &&
+        incoming().createdAt == existing().createdAt &&
+        incoming().updatedAt == request.time &&
+        !isSuspendedAccount() &&
+        !isViewerOnly() && (
+          // Action 1: Approver manages booking or updates approval status
+          (hasPermission('approveBookings') &&
+            exists(/databases/$(database)/documents/classrooms/$(incoming().roomId)) &&
+            incoming().diff(existing()).affectedKeys().hasOnly([
+              'roomId', 'roomName', 'courseTitle', 'instructorName', 'department',
+              'bookingType', 'date', 'startTime', 'endTime', 'attendeesCount',
+              'status', 'notes', 'updatedAt'
+            ])) ||
+          // Action 2: Branch supervisor with manageBookings updates booking details or cancels
+          (hasPermission('manageBookings') &&
+            (incoming().status == existing().status || incoming().status == 'cancelled') &&
+            exists(/databases/$(database)/documents/classrooms/$(incoming().roomId)) &&
+            incoming().diff(existing()).affectedKeys().hasOnly([
+              'roomId', 'roomName', 'courseTitle', 'instructorName', 'department',
+              'bookingType', 'date', 'startTime', 'endTime', 'attendeesCount',
+              'status', 'notes', 'updatedAt'
+            ])) ||
+          // Action 3: Creator updates own pending booking details
+          (existing().creatorId == request.auth.uid &&
+            existing().status == 'pending' &&
+            incoming().status == existing().status &&
+            exists(/databases/$(database)/documents/classrooms/$(incoming().roomId)) &&
+            incoming().diff(existing()).affectedKeys().hasOnly([
+              'roomId', 'roomName', 'courseTitle', 'instructorName', 'department',
+              'bookingType', 'date', 'startTime', 'endTime', 'attendeesCount',
+              'notes', 'updatedAt'
+            ])) ||
+          // Action 4: Creator cancels own non-terminal booking
+          (existing().creatorId == request.auth.uid &&
+            existing().status in ['pending', 'confirmed'] &&
+            incoming().status == 'cancelled' &&
+            incoming().diff(existing()).affectedKeys().hasOnly(['status', 'updatedAt']))
+        );
+
+      allow delete: if isVerified() &&
+        isValidId(bookingId) &&
+        !isSuspendedAccount() &&
+        !isViewerOnly() &&
+        (hasPermission('approveBookings') ||
+          hasPermission('manageBookings') ||
+          (existing().creatorId == request.auth.uid && existing().status == 'pending'));
+    }
+
+    // --- Collection: Isolated User Private Info ---
+    match /users/{userId}/private/{docId} {
+      allow get: if isSignedIn() && isValidId(userId) && isValidId(docId) && docId == 'info' && (isOwner(userId) || isAdmin());
+      allow list: if false;
+
+      allow create: if isVerified() &&
+        isValidId(userId) &&
+        isValidId(docId) &&
+        docId == 'info' &&
+        isOwner(userId) &&
+        isValidUserPrivate(incoming(), userId) &&
+        incoming().createdAt == request.time &&
+        incoming().updatedAt == request.time &&
+        (isAdmin() || incoming().role == 'coordinator');
+
+      allow update: if isVerified() &&
+        isValidId(userId) &&
+        isValidId(docId) &&
+        docId == 'info' &&
+        isValidUserPrivate(incoming(), userId) &&
+        incoming().uid == existing().uid &&
+        incoming().createdAt == existing().createdAt &&
+        incoming().updatedAt == request.time && (
+          // Action 1: Owner updates profile details without changing role
+          (isOwner(userId) &&
+            incoming().role == existing().role &&
+            incoming().diff(existing()).affectedKeys().hasOnly([
+              'displayName', 'email', 'photoURL', 'department', 'updatedAt'
+            ])) ||
+          // Action 2: Admin updates user role or department
+          (isAdmin() &&
+            incoming().diff(existing()).affectedKeys().hasOnly([
+              'role', 'department', 'updatedAt'
+            ]))
+        );
+
+      allow delete: if isVerified() && isValidId(userId) && isValidId(docId) && docId == 'info' && isAdmin();
+    }
+
+    // --- Collection: Trusted Admins ---
+    match /admins/{adminId} {
+      allow get: if isSignedIn() && isValidId(adminId) && (isOwner(adminId) || isAdmin());
+      allow list: if isBootstrappedAdmin();
+
+      allow create: if isVerified() &&
+        isValidId(adminId) &&
+        isAdmin() &&
+        isValidAdminRecord(incoming(), adminId) &&
+        incoming().grantedBy == request.auth.uid &&
+        incoming().createdAt == request.time;
+
+      allow update: if false;
+      allow delete: if isVerified() && isValidId(adminId) && isAdmin();
+    }
+
+    // --- Collection: Departments ---
+    match /departments/{departmentId} {
+      allow get: if isSignedIn() && isValidId(departmentId);
+      allow list: if isSignedIn() && (isBootstrappedAdmin() || resource.data.status in ['active', 'inactive']);
+
+      allow create: if isVerified() &&
+        isValidId(departmentId) &&
+        isValidDepartment(incoming()) &&
+        incoming().id == departmentId &&
+        incoming().createdBy == request.auth.uid &&
+        incoming().createdAt == request.time &&
+        incoming().updatedAt == request.time &&
+        hasPermission('manageDepartments');
+
+      allow update: if isVerified() &&
+        isValidId(departmentId) &&
+        isValidDepartment(incoming()) &&
+        incoming().id == existing().id &&
+        incoming().createdBy == existing().createdBy &&
+        incoming().createdAt == existing().createdAt &&
+        incoming().updatedAt == request.time &&
+        hasPermission('manageDepartments') &&
+        incoming().diff(existing()).affectedKeys().hasOnly([
+          'name', 'code', 'headName', 'sector', 'status', 'notes', 'updatedAt'
+        ]);
+
+      allow delete: if isVerified() && isValidId(departmentId) && hasPermission('manageDepartments');
+    }
+
+    // --- Collection: Branch & Staff Accounts ---
+    match /accounts/{accountId} {
+      allow get: if hasVerifiedEmail() && isValidId(accountId) && (accountId == accountDocId() || isAdmin());
+      allow list: if hasVerifiedEmail() && (isBootstrappedAdmin() || resource.data.email == request.auth.token.email.lower());
+
+      allow create: if isVerified() &&
+        isValidId(accountId) &&
+        isValidAccount(incoming()) &&
+        incoming().id == accountId &&
+        incoming().createdBy == request.auth.uid &&
+        incoming().createdAt == request.time &&
+        incoming().updatedAt == request.time &&
+        isAdmin();
+
+      allow update: if isVerified() &&
+        isValidId(accountId) &&
+        isValidAccount(incoming()) &&
+        incoming().id == existing().id &&
+        incoming().createdBy == existing().createdBy &&
+        incoming().createdAt == existing().createdAt &&
+        incoming().updatedAt == request.time &&
+        isAdmin() &&
+        incoming().diff(existing()).affectedKeys().hasOnly([
+          'email', 'displayName', 'branchName', 'role', 'status', 'permissions', 'notes', 'updatedAt'
+        ]);
+
+      allow delete: if isVerified() && isValidId(accountId) && isAdmin();
+    }
+
+    // --- Collection: System Settings ---
+    match /settings/{settingId} {
+      allow get: if isSignedIn() && isValidId(settingId) && settingId == 'system';
+      allow list: if false;
+
+      allow create: if isVerified() &&
+        isValidId(settingId) &&
+        settingId == 'system' &&
+        isValidSystemSettings(incoming()) &&
+        incoming().id == settingId &&
+        incoming().updatedBy == request.auth.uid &&
+        incoming().updatedAt == request.time &&
+        hasPermission('manageSettings');
+
+      allow update: if isVerified() &&
+        isValidId(settingId) &&
+        settingId == 'system' &&
+        isValidSystemSettings(incoming()) &&
+        incoming().id == existing().id &&
+        incoming().updatedBy == request.auth.uid &&
+        incoming().updatedAt == request.time &&
+        hasPermission('manageSettings') &&
+        incoming().diff(existing()).affectedKeys().hasOnly([
+          'organizationName', 'complexSubtitle', 'workStartHour', 'workEndHour',
+          'maxAdvanceDays', 'requireAdminApproval', 'allowWeekendBookings',
+          'strictAccountAccess', 'reportHeaderTitle', 'reportFooterNote',
+          'lastBackupAt', 'lastBackupBy', 'updatedBy', 'updatedAt'
+        ]);
+
+      allow delete: if false;
+    }
+
+    // --- Collection: Immutable Audit Logs ---
+    match /auditLogs/{logId} {
+      allow get: if isVerified() && isValidId(logId) && !isSuspendedAccount() && (
+        isAdmin() ||
+        existing().actorUid == request.auth.uid ||
+        existing().entityType in ['booking', 'classroom', 'department']
+      );
+      allow list: if isVerified() && (
+        isBootstrappedAdmin() ||
+        resource.data.actorUid == request.auth.uid ||
+        resource.data.entityType in ['booking', 'classroom', 'department']
+      );
+
+      allow create: if isVerified() &&
+        isValidId(logId) &&
+        isValidAuditLog(incoming()) &&
+        incoming().id == logId &&
+        incoming().actorUid == request.auth.uid &&
+        incoming().createdAt == request.time &&
+        !isSuspendedAccount() &&
+        !isViewerOnly();
+
+      allow update: if false;
+      allow delete: if false;
+    }
+  }
+}

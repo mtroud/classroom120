@@ -1,0 +1,8 @@
+{
+  "name": "إدارة قاعات مجمع سيد الشهداء (ع) الخدمي",
+  "description": "منظومة إدارة الحجوزات والجدول الدراسي للقاعات الدراسية المجهزة في قسم مجمع سيد الشهداء (ع) الخدمي",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

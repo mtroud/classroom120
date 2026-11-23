@@ -1,0 +1,587 @@
+{
+  "entities": {
+    "Classroom": {
+      "title": "Classroom",
+      "description": "Equipped classroom in Sayyid al-Shuhada (AS) Service Complex",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-zA-Z0-9_\\-]+$",
+          "minLength": 1,
+          "maxLength": 64
+        },
+        "name": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 100
+        },
+        "code": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 24
+        },
+        "floor": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 40
+        },
+        "capacity": {
+          "type": "integer"
+        },
+        "equipment": {
+          "type": "array"
+        },
+        "status": {
+          "type": "string",
+          "enum": ["available", "maintenance"]
+        },
+        "imageUrl": {
+          "type": "string",
+          "maxLength": 300
+        },
+        "notes": {
+          "type": "string",
+          "maxLength": 300
+        },
+        "createdBy": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "code",
+        "floor",
+        "capacity",
+        "equipment",
+        "status",
+        "imageUrl",
+        "notes",
+        "createdBy",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "Booking": {
+      "title": "Booking",
+      "description": "Study schedule reservation for an equipped classroom",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-zA-Z0-9_\\-]+$",
+          "minLength": 1,
+          "maxLength": 64
+        },
+        "roomId": {
+          "type": "string",
+          "pattern": "^[a-zA-Z0-9_\\-]+$",
+          "minLength": 1,
+          "maxLength": 64
+        },
+        "roomName": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 100
+        },
+        "courseTitle": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 120
+        },
+        "instructorName": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 80
+        },
+        "department": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 80
+        },
+        "bookingType": {
+          "type": "string",
+          "enum": ["lecture", "workshop", "exam", "seminar"]
+        },
+        "date": {
+          "type": "string",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+          "minLength": 10,
+          "maxLength": 10
+        },
+        "startTime": {
+          "type": "string",
+          "pattern": "^([01]\\d|2[0-3]):[0-5]\\d$",
+          "minLength": 5,
+          "maxLength": 5
+        },
+        "endTime": {
+          "type": "string",
+          "pattern": "^([01]\\d|2[0-3]):[0-5]\\d$",
+          "minLength": 5,
+          "maxLength": 5
+        },
+        "attendeesCount": {
+          "type": "integer"
+        },
+        "status": {
+          "type": "string",
+          "enum": ["pending", "confirmed", "rejected", "cancelled"]
+        },
+        "notes": {
+          "type": "string",
+          "maxLength": 300
+        },
+        "creatorId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "creatorName": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 80
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "roomId",
+        "roomName",
+        "courseTitle",
+        "instructorName",
+        "department",
+        "bookingType",
+        "date",
+        "startTime",
+        "endTime",
+        "attendeesCount",
+        "status",
+        "notes",
+        "creatorId",
+        "creatorName",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "UserPrivateInfo": {
+      "title": "UserPrivateInfo",
+      "description": "Isolated private user profile and role metadata",
+      "type": "object",
+      "properties": {
+        "uid": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "email": {
+          "type": "string",
+          "maxLength": 160
+        },
+        "displayName": {
+          "type": "string",
+          "maxLength": 80
+        },
+        "photoURL": {
+          "type": "string",
+          "maxLength": 300
+        },
+        "department": {
+          "type": "string",
+          "maxLength": 80
+        },
+        "role": {
+          "type": "string",
+          "enum": ["admin", "branch_supervisor", "coordinator", "viewer"]
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "uid",
+        "email",
+        "displayName",
+        "photoURL",
+        "department",
+        "role",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "AdminRecord": {
+      "title": "AdminRecord",
+      "description": "Trusted administrator membership document",
+      "type": "object",
+      "properties": {
+        "uid": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "grantedBy": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": ["uid", "grantedBy", "createdAt"]
+    },
+    "Department": {
+      "title": "Department",
+      "description": "Authorized department of al-Ataba al-Husayniyya al-Muqaddasa allowed to request classroom bookings",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-zA-Z0-9_\\-]+$",
+          "minLength": 1,
+          "maxLength": 64
+        },
+        "name": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 80
+        },
+        "code": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 24
+        },
+        "headName": {
+          "type": "string",
+          "maxLength": 80
+        },
+        "sector": {
+          "type": "string",
+          "maxLength": 80
+        },
+        "status": {
+          "type": "string",
+          "enum": ["active", "inactive"]
+        },
+        "notes": {
+          "type": "string",
+          "maxLength": 300
+        },
+        "createdBy": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "code",
+        "headName",
+        "sector",
+        "status",
+        "notes",
+        "createdBy",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "Account": {
+      "title": "Account",
+      "description": "Authorized branch supervisor, coordinator, or staff viewer account with granular permissions",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-zA-Z0-9_\\-]+$",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "email": {
+          "type": "string",
+          "minLength": 3,
+          "maxLength": 160
+        },
+        "displayName": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 80
+        },
+        "branchName": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 80
+        },
+        "role": {
+          "type": "string",
+          "enum": ["admin", "branch_supervisor", "coordinator", "viewer"]
+        },
+        "status": {
+          "type": "string",
+          "enum": ["active", "suspended"]
+        },
+        "permissions": {
+          "type": "object"
+        },
+        "notes": {
+          "type": "string",
+          "maxLength": 300
+        },
+        "createdBy": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "email",
+        "displayName",
+        "branchName",
+        "role",
+        "status",
+        "permissions",
+        "notes",
+        "createdBy",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "SystemSettings": {
+      "title": "SystemSettings",
+      "description": "Complex operating settings, booking policies, report headers, and backup metadata",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-zA-Z0-9_\\-]+$",
+          "minLength": 1,
+          "maxLength": 64
+        },
+        "organizationName": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 100
+        },
+        "complexSubtitle": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 120
+        },
+        "workStartHour": {
+          "type": "string",
+          "pattern": "^([01]\\d|2[0-3]):[0-5]\\d$",
+          "minLength": 5,
+          "maxLength": 5
+        },
+        "workEndHour": {
+          "type": "string",
+          "pattern": "^([01]\\d|2[0-3]):[0-5]\\d$",
+          "minLength": 5,
+          "maxLength": 5
+        },
+        "maxAdvanceDays": {
+          "type": "integer"
+        },
+        "requireAdminApproval": {
+          "type": "boolean"
+        },
+        "allowWeekendBookings": {
+          "type": "boolean"
+        },
+        "strictAccountAccess": {
+          "type": "boolean"
+        },
+        "reportHeaderTitle": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 140
+        },
+        "reportFooterNote": {
+          "type": "string",
+          "maxLength": 200
+        },
+        "lastBackupAt": {
+          "type": "string",
+          "maxLength": 64
+        },
+        "lastBackupBy": {
+          "type": "string",
+          "maxLength": 80
+        },
+        "updatedBy": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "organizationName",
+        "complexSubtitle",
+        "workStartHour",
+        "workEndHour",
+        "maxAdvanceDays",
+        "requireAdminApproval",
+        "allowWeekendBookings",
+        "strictAccountAccess",
+        "reportHeaderTitle",
+        "reportFooterNote",
+        "lastBackupAt",
+        "lastBackupBy",
+        "updatedBy",
+        "updatedAt"
+      ]
+    },
+    "AuditLogEntry": {
+      "title": "AuditLogEntry",
+      "description": "Immutable append-only audit log entry recording booking, classroom, department, account, and settings operations",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-zA-Z0-9_\\-]+$",
+          "minLength": 1,
+          "maxLength": 64
+        },
+        "entityType": {
+          "type": "string",
+          "enum": ["booking", "classroom", "department", "account", "settings"]
+        },
+        "entityId": {
+          "type": "string",
+          "pattern": "^[a-zA-Z0-9_\\-]+$",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "entityLabel": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 140
+        },
+        "action": {
+          "type": "string",
+          "enum": ["create", "update", "approve", "reject", "cancel", "delete", "restore"]
+        },
+        "summary": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 240
+        },
+        "actorUid": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "actorName": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 80
+        },
+        "actorRole": {
+          "type": "string",
+          "enum": ["admin", "branch_supervisor", "coordinator", "viewer"]
+        },
+        "branchName": {
+          "type": "string",
+          "maxLength": 80
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "entityType",
+        "entityId",
+        "entityLabel",
+        "action",
+        "summary",
+        "actorUid",
+        "actorName",
+        "actorRole",
+        "branchName",
+        "createdAt"
+      ]
+    }
+  },
+  "firestore": {
+    "/classrooms/{roomId}": {
+      "schema": { "$ref": "#/entities/Classroom" },
+      "description": "Equipped classrooms managed by the complex administration"
+    },
+    "/bookings/{bookingId}": {
+      "schema": { "$ref": "#/entities/Booking" },
+      "description": "Classroom bookings and study timetable entries (no PII stored)"
+    },
+    "/departments/{departmentId}": {
+      "schema": { "$ref": "#/entities/Department" },
+      "description": "Departments of al-Ataba al-Husayniyya al-Muqaddasa managed by administration"
+    },
+    "/accounts/{accountId}": {
+      "schema": { "$ref": "#/entities/Account" },
+      "description": "Branch supervisor and staff viewer accounts keyed by normalized email identifier"
+    },
+    "/settings/{settingId}": {
+      "schema": { "$ref": "#/entities/SystemSettings" },
+      "description": "Complex system settings, operating hours, approval policy, and backup logs"
+    },
+    "/auditLogs/{logId}": {
+      "schema": { "$ref": "#/entities/AuditLogEntry" },
+      "description": "Immutable append-only audit trail for booking, classroom, department, account, and settings actions"
+    },
+    "/users/{userId}/private/{docId}": {
+      "schema": { "$ref": "#/entities/UserPrivateInfo" },
+      "description": "Strictly isolated PII and role profile for each authenticated user"
+    },
+    "/admins/{adminId}": {
+      "schema": { "$ref": "#/entities/AdminRecord" },
+      "description": "Trusted admin allowlist records"
+    }
+  }
+}
