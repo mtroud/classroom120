@@ -50,6 +50,27 @@ export function generateReadablePassword(length = 10): string {
   return Array.from(bytes, (b) => charset[b % charset.length]).join('');
 }
 
+export function suggestCoordinatorUsername(
+  deptCode: string,
+  takenUsernames: Set<string>,
+  fallbackIndex = 1
+): string {
+  const cleaned = deptCode
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9._-]+/g, '_')
+    .replace(/^_+|_+$/g, '');
+  const base = cleaned.length >= 3 ? cleaned.slice(0, 32) : `coord_${fallbackIndex}`;
+  let candidate = base;
+  let suffix = 2;
+  while (takenUsernames.has(candidate)) {
+    candidate = `${base}_${suffix}`;
+    suffix += 1;
+  }
+  takenUsernames.add(candidate);
+  return candidate;
+}
+
 export const ROLE_LABEL_AR: Record<UserRole, string> = {
   admin: 'مدير النظام الأعلى',
   branch_supervisor: 'مسؤول شعبة في المجمع',

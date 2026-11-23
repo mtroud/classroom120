@@ -93,6 +93,7 @@ import {
   generateReadablePassword,
   isInternalAuthEmail,
   resolveEffectiveAccess,
+  suggestCoordinatorUsername,
   usernameToAuthEmail,
 } from './utils/permissions';
 import {
@@ -119,6 +120,9 @@ function DashboardWorkspace() {
   const [myAccountResolved, setMyAccountResolved] = useState(false);
   const [lastCreatedCredentials, setLastCreatedCredentials] =
     useState<CreatedCredentialsNotice | null>(null);
+  const [batchCreatedCredentials, setBatchCreatedCredentials] = useState<
+    CreatedCredentialsNotice[] | null
+  >(null);
 
   const [classrooms, setClassrooms] = useState<Classroom[]>([]);
   const [departments, setDepartments] = useState<Department[]>([]);
@@ -246,6 +250,7 @@ function DashboardWorkspace() {
         setMyAccountDoc(null);
         setMyAccountResolved(false);
         setLastCreatedCredentials(null);
+        setBatchCreatedCredentials(null);
         setClassrooms([]);
         setDepartments([]);
         setBookings([]);
@@ -806,8 +811,13 @@ function DashboardWorkspace() {
       classrooms.find((r) => r.status === 'available')?.id ||
       classrooms[0]?.id ||
       '';
+    const coordinatorDept =
+      access.role === 'coordinator' && access.branchName
+        ? access.branchName
+        : '';
     const defaultDept =
       departmentName ||
+      coordinatorDept ||
       departments.find((d) => d.status === 'active')?.name ||
       ATABA_DEPARTMENTS[0];
     setBookingDraft({
@@ -1297,6 +1307,131 @@ function DashboardWorkspace() {
       notes: 'حساب موحّد للمنتسبين للاطلاع على جدول الدورات والقاعات فقط',
     });
     setAccountModalOpen(true);
+  };
+
+  const openCreateCoordinatorForDept = (dept: Department) => {
+    const takenUsernames = new Set(
+      accounts
+        .map((a) =>
+          (
+            a.username ||
+            (isInternalAuthEmail(a.email) ? a.email.split('@')[0] : '')
+          ).toLowerCase()
+        )
+        .filter(Boolean)
+    );
+    const suggestedUsername = suggestCoordinatorUsername(
+      dept.code,
+      takenUsernames,
+      accounts.length + 1
+    );
+    const displayName = (dept.headName.trim() || `منسق ${dept.name}`).slice(
+      0,
+      BLUEPRINT_LIMITS.DISPLAY_NAME_MAX
+    );
+    setAccountDraft({
+      email: '',
+      username: suggestedUsername,
+      authType: 'credentials',
+      password: generateReadablePassword(8),
+      displayName,
+      branchName: dept.name.slice(0, BLUEPRINT_LIMITS.BRANCH_NAME_MAX),
+      role: 'coordinator',
+      status: 'active',
+      permissions: defaultPermissionsForRole('coordinator'),
+      notes: `منسق حجز القاعات لـ ${dept.name}`.slice(0, BLUEPRINT_LIMITS.NOTES_MAX),
+    });
+    setAccountModalOpen(true);
+  };
+
+  const handleBatchCreateCoordinators = async (targetDepts: Department[]) => {
+    if (!user || !access.canManageAccounts || targetDepts.length === 0) return;
+
+    const takenUsernames = new Set(
+      accounts
+        .map((a) =>
+          (
+            a.username ||
+            (isInternalAuthEmail(a.email) ? a.email.split('@')[0] : '')
+          ).toLowerCase()
+        )
+        .filter(Boolean)
+    );
+
+    const created: CreatedCredentialsNotice[] = [];
+    let firstError: string | null = null;
+
+    for (let i = 0; i < targetDepts.length; i += 1) {
+      const dept = targetDepts[i];
+      const username = suggestCoordinatorUsername(dept.code, takenUsernames, i + 1);
+      const authEmail = usernameToAuthEmail(username);
+      const accId = emailToAccountId(authEmail);
+      const password = generateReadablePassword(8);
+      const displayName = (dept.headName.trim() || `منسق ${dept.name}`).slice(
+        0,
+        BLUEPRINT_LIMITS.DISPLAY_NAME_MAX
+      );
+      const branchName = dept.name.slice(0, BLUEPRINT_LIMITS.BRANCH_NAME_MAX);
+      const perms = defaultPermissionsForRole('coordinator');
+
+      try {
+        const provisionedAuthUid = await provisionCredentialsUser({
+          email: authEmail,
+          password,
+          displayName,
+        });
+
+        await setDoc(doc(db, 'accounts', accId), {
+          id: accId,
+          email: authEmail.slice(0, BLUEPRINT_LIMITS.EMAIL_MAX),
+          username: username.slice(0, BLUEPRINT_LIMITS.USERNAME_MAX),
+          authType: 'credentials',
+          authUid: provisionedAuthUid,
+          displayName,
+          branchName,
+          role: 'coordinator',
+          status: 'active',
+          permissions: perms,
+          notes: `منسق حجز القاعات لـ ${branchName}`.slice(0, BLUEPRINT_LIMITS.NOTES_MAX),
+          createdBy: user.uid,
+          createdAt: serverTimestamp(),
+          updatedAt: serverTimestamp(),
+        });
+
+        created.push({
+          displayName,
+          username,
+          password,
+          branchName,
+          role: 'coordinator',
+        });
+      } catch (err) {
+        if (!firstError) {
+          firstError = formatAuthErrorAr(err);
+        }
+      }
+    }
+
+    if (created.length > 0) {
+      setBatchCreatedCredentials(created);
+      void recordAuditLog({
+        entityType: 'account',
+        entityId: 'batch_coordinators',
+        entityLabel: `تجهيز منسقي الأقسام (${created.length})`,
+        action: 'create',
+        summary: `إنشاء ${created.length} حسابات منسقي أقسام للحجز السريع`,
+      });
+      showToast(`تم إنشاء ${created.length} حساب منسق قسم بنجاح`);
+    }
+
+    if (created.length === 0 && firstError) {
+      throw new Error(firstError);
+    }
+    if (firstError && created.length < targetDepts.length) {
+      throw new Error(
+        `تم إنشاء ${created.length} حساباً، وتعذر إكمال البقية: ${firstError}`
+      );
+    }
   };
 
   const openEditAccount = (acc: AccountRecord) => {
@@ -2124,6 +2259,18 @@ function DashboardWorkspace() {
                 openNewBooking(undefined, selectedDate, '09:00', '11:00', deptName)
               }
               onSeedDefaults={seedDefaultDepartments}
+              coordinatorBranchNames={
+                access.canManageAccounts
+                  ? new Set(
+                      accounts
+                        .filter((a) => a.role === 'coordinator')
+                        .map((a) => a.branchName.trim())
+                    )
+                  : undefined
+              }
+              onCreateCoordinator={
+                access.canManageAccounts ? openCreateCoordinatorForDept : undefined
+              }
             />
           )}
 
@@ -2149,11 +2296,16 @@ function DashboardWorkspace() {
           {activeTab === 'accounts' && access.canManageAccounts && (
             <AccountsView
               accounts={accounts}
+              departments={departments}
               isLoading={loadingAccounts}
               lastCreatedCredentials={lastCreatedCredentials}
               onDismissCreatedCredentials={() => setLastCreatedCredentials(null)}
+              batchCreatedCredentials={batchCreatedCredentials}
+              onDismissBatchCreated={() => setBatchCreatedCredentials(null)}
               onAddAccount={openAddAccount}
               onCreateUnifiedViewer={openUnifiedViewerAccount}
+              onCreateCoordinatorForDept={openCreateCoordinatorForDept}
+              onBatchCreateCoordinators={handleBatchCreateCoordinators}
               onEditAccount={openEditAccount}
               onToggleStatus={handleToggleAccountStatus}
               onDeleteAccount={handleDeleteAccount}
@@ -2363,6 +2515,9 @@ function DashboardWorkspace() {
           existingBookings={bookings}
           initialDraft={bookingDraft}
           isAdmin={access.canApproveBookings}
+          coordinatorDepartment={
+            access.role === 'coordinator' ? access.branchName : undefined
+          }
           allowWeekendBookings={systemSettings.allowWeekendBookings}
           maxAdvanceDays={systemSettings.maxAdvanceDays}
         />

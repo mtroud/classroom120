@@ -1,23 +1,30 @@
 import { useMemo, useState } from 'react';
 import {
+  AlertCircle,
+  Building2,
   Check,
   CheckCircle2,
+  ChevronDown,
+  ChevronUp,
   Copy,
+  Download,
   PauseCircle,
   Pencil,
   Plus,
   Search,
   ShieldCheck,
   Trash2,
+  UserPlus,
   Users,
   X,
 } from 'lucide-react';
-import { AccountRecord, UserRole } from '../types';
+import { AccountRecord, Department, UserRole } from '../types';
 import {
   PERMISSION_ITEMS,
   ROLE_LABEL_AR,
   formatAccountLoginIdentifier,
 } from '../utils/permissions';
+import { getTodayISO } from '../utils/schedule';
 
 export interface CreatedCredentialsNotice {
   displayName: string;
@@ -29,11 +36,16 @@ export interface CreatedCredentialsNotice {
 
 interface AccountsViewProps {
   accounts: AccountRecord[];
+  departments?: Department[];
   isLoading: boolean;
   lastCreatedCredentials?: CreatedCredentialsNotice | null;
   onDismissCreatedCredentials?: () => void;
+  batchCreatedCredentials?: CreatedCredentialsNotice[] | null;
+  onDismissBatchCreated?: () => void;
   onAddAccount: () => void;
   onCreateUnifiedViewer?: () => void;
+  onCreateCoordinatorForDept?: (dept: Department) => void;
+  onBatchCreateCoordinators?: (depts: Department[]) => Promise<void>;
   onEditAccount: (account: AccountRecord) => void;
   onToggleStatus: (account: AccountRecord) => Promise<void>;
   onDeleteAccount: (account: AccountRecord) => Promise<void>;
@@ -41,11 +53,16 @@ interface AccountsViewProps {
 
 export function AccountsView({
   accounts,
+  departments = [],
   isLoading,
   lastCreatedCredentials,
   onDismissCreatedCredentials,
+  batchCreatedCredentials,
+  onDismissBatchCreated,
   onAddAccount,
   onCreateUnifiedViewer,
+  onCreateCoordinatorForDept,
+  onBatchCreateCoordinators,
   onEditAccount,
   onToggleStatus,
   onDeleteAccount,
@@ -54,6 +71,10 @@ export function AccountsView({
   const [roleFilter, setRoleFilter] = useState<'all' | UserRole>('all');
   const [busyId, setBusyId] = useState<string | null>(null);
   const [copiedCreds, setCopiedCreds] = useState(false);
+  const [copiedBatch, setCopiedBatch] = useState(false);
+  const [showMissingDepts, setShowMissingDepts] = useState(false);
+  const [batchCreating, setBatchCreating] = useState(false);
+  const [batchError, setBatchError] = useState<string | null>(null);
 
   const counts = useMemo(() => {
     return {
@@ -67,6 +88,29 @@ export function AccountsView({
   const hasActiveViewerAccount = useMemo(
     () => accounts.some((a) => a.role === 'viewer' && a.status === 'active'),
     [accounts]
+  );
+
+  const activeDepartments = useMemo(
+    () => departments.filter((d) => d.status === 'active'),
+    [departments]
+  );
+
+  const coordinatorBranches = useMemo(
+    () =>
+      new Set(
+        accounts
+          .filter((a) => a.role === 'coordinator')
+          .map((a) => a.branchName.trim())
+      ),
+    [accounts]
+  );
+
+  const missingCoordinatorDepts = useMemo(
+    () =>
+      activeDepartments.filter(
+        (d) => !coordinatorBranches.has(d.name.trim())
+      ),
+    [activeDepartments, coordinatorBranches]
   );
 
   const filtered = useMemo(() => {
@@ -90,6 +134,64 @@ export function AccountsView({
       setTimeout(() => setCopiedCreds(false), 2500);
     } catch {
       // Clipboard fallback ignored cleanly
+    }
+  };
+
+  const handleCopyBatchCredentials = async () => {
+    if (!batchCreatedCredentials || batchCreatedCredentials.length === 0) return;
+    const lines = batchCreatedCredentials.map(
+      (item, idx) =>
+        `${idx + 1}. ${item.branchName}\nاليوزر: ${item.username} | كلمة المرور: ${item.password}`
+    );
+    const text = `بيانات دخول منسقي الأقسام — منظومة قاعات مجمع سيد الشهداء (ع)\n\n${lines.join('\n\n')}`;
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopiedBatch(true);
+      setTimeout(() => setCopiedBatch(false), 2500);
+    } catch {
+      // Clipboard fallback ignored cleanly
+    }
+  };
+
+  const handleExportBatchCsv = () => {
+    if (!batchCreatedCredentials || batchCreatedCredentials.length === 0) return;
+    const headers = ['القسم', 'الاسم', 'اليوزر', 'كلمة المرور', 'الدور'];
+    const rows = batchCreatedCredentials.map((item) => [
+      item.branchName,
+      item.displayName,
+      item.username,
+      item.password,
+      ROLE_LABEL_AR[item.role],
+    ]);
+    const csv =
+      '\uFEFF' +
+      [headers, ...rows]
+        .map((r) => r.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(','))
+        .join('\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', `coordinators-accounts-${getTodayISO()}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
+  const handleRunBatchCoordinators = async () => {
+    if (!onBatchCreateCoordinators || missingCoordinatorDepts.length === 0) return;
+    setBatchError(null);
+    setBatchCreating(true);
+    try {
+      await onBatchCreateCoordinators(missingCoordinatorDepts);
+      setShowMissingDepts(false);
+    } catch (err) {
+      setBatchError(
+        err instanceof Error ? err.message : 'تعذر إنشاء حسابات منسقي الأقسام.'
+      );
+    } finally {
+      setBatchCreating(false);
     }
   };
 
@@ -146,6 +248,177 @@ export function AccountsView({
           <span>إضافة حساب جديد</span>
         </button>
       </div>
+
+      {/* Department Coordinators Provisioning Panel */}
+      {activeDepartments.length > 0 &&
+        (onCreateCoordinatorForDept || onBatchCreateCoordinators) && (
+          <div className="bg-white border border-slate-200 rounded-xl p-4 sm:p-5 space-y-3">
+            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
+              <div className="flex items-start gap-3">
+                <div className="w-9 h-9 rounded-lg bg-teal-50 border border-teal-200 flex items-center justify-center shrink-0 text-teal-800">
+                  <Building2 className="w-4 h-4" />
+                </div>
+                <div>
+                  <div className="text-xs font-bold text-slate-900">
+                    حسابات منسقي الأقسام للحجز السريع
+                  </div>
+                  <p className="text-[11px] text-slate-600 mt-0.5 leading-relaxed">
+                    {missingCoordinatorDepts.length > 0
+                      ? `يوجد ${missingCoordinatorDepts.length} قسم فعّال بدون حساب منسق حجز حتى الآن (من أصل ${activeDepartments.length} قسماً).`
+                      : `جميع الأقسام الفعّالة (${activeDepartments.length}) لديها حسابات منسقين جاهزة لرفع طلبات الحجز.`}
+                  </p>
+                </div>
+              </div>
+
+              {missingCoordinatorDepts.length > 0 && (
+                <div className="flex flex-wrap items-center gap-2 shrink-0">
+                  {onCreateCoordinatorForDept && (
+                    <button
+                      type="button"
+                      onClick={() => setShowMissingDepts((prev) => !prev)}
+                      className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border border-slate-200 bg-white text-slate-700 text-xs font-semibold hover:bg-slate-50 transition-colors cursor-pointer"
+                    >
+                      {showMissingDepts ? (
+                        <ChevronUp className="w-3.5 h-3.5" />
+                      ) : (
+                        <ChevronDown className="w-3.5 h-3.5" />
+                      )}
+                      <span>
+                        {showMissingDepts ? 'إخفاء الأقسام' : 'تخصيص لكل قسم'}
+                      </span>
+                    </button>
+                  )}
+
+                  {onBatchCreateCoordinators && (
+                    <button
+                      type="button"
+                      disabled={batchCreating}
+                      onClick={() => void handleRunBatchCoordinators()}
+                      className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-teal-700 text-white text-xs font-semibold hover:bg-teal-800 disabled:opacity-60 transition-colors cursor-pointer"
+                    >
+                      <UserPlus className="w-3.5 h-3.5" />
+                      <span>
+                        {batchCreating
+                          ? 'جاري تجهيز الحسابات...'
+                          : `إنشاء حسابات الأقسام الناقصة (${missingCoordinatorDepts.length})`}
+                      </span>
+                    </button>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {batchError && (
+              <div className="bg-red-50 border border-red-200 rounded-lg px-3.5 py-2.5 text-xs text-red-800 flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 shrink-0" />
+                <span>{batchError}</span>
+              </div>
+            )}
+
+            {showMissingDepts && missingCoordinatorDepts.length > 0 && (
+              <div className="pt-2 border-t border-slate-100 grid grid-cols-1 md:grid-cols-2 gap-2">
+                {missingCoordinatorDepts.map((dept) => (
+                  <div
+                    key={dept.id}
+                    className="flex items-center justify-between gap-3 bg-slate-50 border border-slate-200 rounded-lg px-3.5 py-2.5"
+                  >
+                    <div className="min-w-0">
+                      <div className="text-xs font-semibold text-slate-900 truncate">
+                        {dept.name}
+                      </div>
+                      <div className="text-[11px] text-slate-500 mt-0.5 flex items-center gap-2">
+                        <span className="font-mono-num text-teal-800">{dept.code}</span>
+                        {dept.headName && <span>· {dept.headName}</span>}
+                      </div>
+                    </div>
+                    {onCreateCoordinatorForDept && (
+                      <button
+                        type="button"
+                        onClick={() => onCreateCoordinatorForDept(dept)}
+                        className="inline-flex items-center gap-1 px-3 py-1.5 rounded-md bg-white border border-teal-200 text-teal-800 text-[11px] font-semibold hover:bg-teal-50 shrink-0 cursor-pointer"
+                      >
+                        <Plus className="w-3 h-3" />
+                        <span>إنشاء حساب</span>
+                      </button>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+      {/* Batch Created Coordinators Table */}
+      {batchCreatedCredentials && batchCreatedCredentials.length > 0 && (
+        <div className="bg-teal-50/70 border border-teal-200 rounded-xl p-4 sm:p-5 space-y-3">
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <div className="text-xs font-bold text-teal-900">
+                تم إنشاء {batchCreatedCredentials.length} حساب منسق قسم بنجاح — يرجى حفظ البيانات أو تصديرها لتسليمها للأقسام
+              </div>
+              <p className="text-[11px] text-teal-800 mt-0.5">
+                لن تظهر كلمات المرور مرة أخرى بعد إغلاق هذه البطاقة لأسباب أمنية.
+              </p>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => void handleCopyBatchCredentials()}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-teal-700 text-white text-xs font-semibold hover:bg-teal-800 cursor-pointer"
+              >
+                {copiedBatch ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+                <span>{copiedBatch ? 'تم النسخ' : 'نسخ الكل'}</span>
+              </button>
+              <button
+                type="button"
+                onClick={handleExportBatchCsv}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-teal-300 bg-white text-teal-900 text-xs font-semibold hover:bg-teal-50 cursor-pointer"
+              >
+                <Download className="w-3.5 h-3.5" />
+                <span>تصدير CSV</span>
+              </button>
+              {onDismissBatchCreated && (
+                <button
+                  type="button"
+                  onClick={onDismissBatchCreated}
+                  aria-label="إغلاق"
+                  className="p-1.5 rounded-md text-teal-700 hover:bg-teal-100 cursor-pointer"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              )}
+            </div>
+          </div>
+
+          <div className="bg-white border border-teal-200 rounded-lg overflow-x-auto">
+            <table className="w-full text-right border-collapse min-w-[580px] text-xs">
+              <thead>
+                <tr className="bg-slate-50 border-b border-slate-200 text-slate-600 font-semibold">
+                  <th className="px-3 py-2">القسم</th>
+                  <th className="px-3 py-2">الاسم التعريفي</th>
+                  <th className="px-3 py-2">اليوزر</th>
+                  <th className="px-3 py-2">كلمة المرور</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {batchCreatedCredentials.map((item) => (
+                  <tr key={item.username}>
+                    <td className="px-3 py-2 font-medium text-slate-900">{item.branchName}</td>
+                    <td className="px-3 py-2 text-slate-600">{item.displayName}</td>
+                    <td className="px-3 py-2 font-mono-num font-semibold text-teal-900" dir="ltr">
+                      {item.username}
+                    </td>
+                    <td className="px-3 py-2 font-mono-num font-semibold text-slate-900" dir="ltr">
+                      {item.password}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
 
       {/* Unified Viewer Quick-Setup Banner */}
       {!hasActiveViewerAccount && onCreateUnifiedViewer && (

@@ -43,6 +43,7 @@ interface BookingModalProps {
   existingBookings: Booking[];
   initialDraft: BookingDraft;
   isAdmin: boolean;
+  coordinatorDepartment?: string;
   allowWeekendBookings?: boolean;
   maxAdvanceDays?: number;
 }
@@ -56,6 +57,7 @@ export function BookingModal({
   existingBookings,
   initialDraft,
   isAdmin,
+  coordinatorDepartment,
   allowWeekendBookings = true,
   maxAdvanceDays = 365,
 }: BookingModalProps) {
@@ -112,6 +114,23 @@ export function BookingModal({
     selectedRoom !== undefined && form.attendeesCount > selectedRoom.capacity;
 
   const isMaintenanceRoom = selectedRoom?.status === 'maintenance';
+
+  const activeDurationMinutes = useMemo(() => {
+    if (!form.startTime || !form.endTime) return 0;
+    return timeToMinutes(form.endTime) - timeToMinutes(form.startTime);
+  }, [form.startTime, form.endTime]);
+
+  const applyDurationMinutes = (durationMinutes: number) => {
+    const startMins = timeToMinutes(form.startTime || '09:00');
+    const maxEndMins = timeToMinutes(TIME_OPTIONS[TIME_OPTIONS.length - 1]);
+    const targetMins = Math.min(startMins + durationMinutes, maxEndMins);
+    const matchingOption =
+      TIME_OPTIONS.find((opt) => timeToMinutes(opt) === targetMins) ||
+      TIME_OPTIONS[TIME_OPTIONS.length - 1];
+    if (timeToMinutes(matchingOption) > startMins) {
+      setForm((prev) => ({ ...prev, endTime: matchingOption }));
+    }
+  };
 
   if (!isOpen) return null;
 
@@ -241,6 +260,12 @@ export function BookingModal({
                   {c.courseTitle} ({formatTime12Ar(c.startTime)} – {formatTime12Ar(c.endTime)} · {c.instructorName})
                 </div>
               ))}
+            </div>
+          )}
+
+          {!form.id && coordinatorDepartment && (
+            <div className="bg-teal-50/70 border border-teal-200 rounded-lg px-4 py-2.5 text-xs text-teal-900">
+              تم تحديد قسمك (<strong className="font-semibold">{coordinatorDepartment}</strong>) تلقائياً للحجز السريع — اختر القاعة والتاريخ والوقت وأرسل الطلب.
             </div>
           )}
 
@@ -403,6 +428,26 @@ export function BookingModal({
                   </option>
                 ))}
               </select>
+              <div className="mt-1.5 flex items-center gap-1.5">
+                {[
+                  { label: 'ساعة', mins: 60 },
+                  { label: 'ساعتان', mins: 120 },
+                  { label: '3 ساعات', mins: 180 },
+                ].map((preset) => (
+                  <button
+                    key={preset.mins}
+                    type="button"
+                    onClick={() => applyDurationMinutes(preset.mins)}
+                    className={`px-2.5 py-1 rounded-md text-[11px] font-medium border transition-colors cursor-pointer ${
+                      activeDurationMinutes === preset.mins
+                        ? 'border-teal-700 bg-teal-50 text-teal-900'
+                        : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
+                    }`}
+                  >
+                    {preset.label}
+                  </button>
+                ))}
+              </div>
             </div>
 
             <div>

@@ -7,6 +7,7 @@ import {
   Plus,
   Search,
   Trash2,
+  UserPlus,
 } from 'lucide-react';
 import { Booking, Department, DepartmentStatus } from '../types';
 import { calculateDurationHours, isActiveBooking } from '../utils/schedule';
@@ -23,6 +24,8 @@ interface DepartmentsViewProps {
   onDeleteDepartment: (dept: Department) => Promise<void>;
   onBookForDepartment: (departmentName: string) => void;
   onSeedDefaults: () => Promise<void>;
+  coordinatorBranchNames?: Set<string>;
+  onCreateCoordinator?: (dept: Department) => void;
 }
 
 export function DepartmentsView({
@@ -37,6 +40,8 @@ export function DepartmentsView({
   onDeleteDepartment,
   onBookForDepartment,
   onSeedDefaults,
+  coordinatorBranchNames,
+  onCreateCoordinator,
 }: DepartmentsViewProps) {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | DepartmentStatus>('all');
@@ -273,6 +278,18 @@ export function DepartmentsView({
                             >
                               <CalendarPlus className="w-3 h-3" />
                               <span>حجز قاعة</span>
+                            </button>
+                          )}
+
+                          {onCreateCoordinator && isActive && !coordinatorBranchNames?.has(dept.name) && (
+                            <button
+                              type="button"
+                              onClick={() => onCreateCoordinator(dept)}
+                              className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md border border-teal-200 bg-teal-50 text-teal-900 text-[11px] font-medium hover:bg-teal-100 transition-colors cursor-pointer"
+                              title="إنشاء حساب منسق لهذا القسم"
+                            >
+                              <UserPlus className="w-3 h-3" />
+                              <span>حساب منسق</span>
                             </button>
                           )}
 
