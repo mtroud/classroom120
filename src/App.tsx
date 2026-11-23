@@ -8,11 +8,14 @@ import {
   Clock,
   FileBarChart2,
   History,
+  KeyRound,
   Layers,
   LogOut,
+  MailCheck,
   Menu,
   Pencil,
   Plus,
+  RefreshCw,
   Settings as SettingsIcon,
   ShieldCheck,
   Trash2,
@@ -62,11 +65,15 @@ import {
 } from './data/seedData';
 import {
   OperationType,
+  attachOrUpdatePasswordForCurrentUser,
   auth,
   db,
   formatAuthErrorAr,
   handleFirestoreError,
+  linkGoogleToCurrentUser,
   provisionCredentialsUser,
+  reloadCurrentUserSession,
+  sendCurrentUserVerificationEmail,
   signInWithCredentials,
   signInWithGoogle,
   signOutUser,
@@ -113,6 +120,11 @@ function DashboardWorkspace() {
   const [authReady, setAuthReady] = useState(false);
   const [user, setUser] = useState<User | null>(null);
   const [authError, setAuthError] = useState<string | null>(null);
+  const [isEmailVerified, setIsEmailVerified] = useState(false);
+  const [authTick, setAuthTick] = useState(0);
+  const [verificationBusy, setVerificationBusy] = useState(false);
+  const [verificationNotice, setVerificationNotice] = useState<string | null>(null);
+  const [verificationError, setVerificationError] = useState<string | null>(null);
   const [hasAdminsDoc, setHasAdminsDoc] = useState(false);
   const [myAccountDoc, setMyAccountDoc] = useState<AccountRecord | null>(null);
   const [myAccountResolved, setMyAccountResolved] = useState(false);
@@ -208,29 +220,45 @@ function DashboardWorkspace() {
 
   const isPasswordUser = useMemo(
     () => Boolean(user?.providerData?.some((p) => p.providerId === 'password')),
-    [user]
+    [user, authTick]
+  );
+
+  const effectiveEmailVerified = Boolean(user?.emailVerified || isEmailVerified);
+
+  const isUnverifiedBootstrappedAdmin = useMemo(
+    () =>
+      Boolean(
+        user?.email &&
+          user.email.toLowerCase() === BOOTSTRAPPED_ADMIN_EMAIL &&
+          !effectiveEmailVerified
+      ),
+    [user, effectiveEmailVerified]
   );
 
   const access = useMemo(
     () =>
       resolveEffectiveAccess({
         email: user?.email,
-        emailVerified: user?.emailVerified,
+        emailVerified: effectiveEmailVerified,
         isPasswordProvider: isPasswordUser,
         hasAdminsDoc,
         account: myAccountDoc,
         settings: systemSettings,
       }),
-    [user, isPasswordUser, hasAdminsDoc, myAccountDoc, systemSettings]
+    [user, effectiveEmailVerified, isPasswordUser, hasAdminsDoc, myAccountDoc, systemSettings, authTick]
   );
 
   // Auth listener & admin doc check
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       setUser(firebaseUser);
+      setIsEmailVerified(Boolean(firebaseUser?.emailVerified));
+      setVerificationError(null);
+      setVerificationNotice(null);
       setAuthReady(true);
 
       if (!firebaseUser) {
+        setIsEmailVerified(false);
         setHasAdminsDoc(false);
         setMyAccountDoc(null);
         setMyAccountResolved(false);
@@ -254,7 +282,6 @@ function DashboardWorkspace() {
       setMyAccountResolved(false);
       const isPwd = firebaseUser.providerData.some((p) => p.providerId === 'password');
       const bootstrapped =
-        !isPwd &&
         Boolean(firebaseUser.emailVerified) &&
         firebaseUser.email?.toLowerCase() === BOOTSTRAPPED_ADMIN_EMAIL;
 
@@ -369,16 +396,28 @@ function DashboardWorkspace() {
   useEffect(() => {
     if (!authReady || !user) return;
 
+    const isPwd = user.providerData.some((p) => p.providerId === 'password');
+    const verifiedNow = Boolean(user.emailVerified || isEmailVerified);
+    const isMainAdminEmail = user.email?.toLowerCase() === BOOTSTRAPPED_ADMIN_EMAIL;
+
+    // Wait until the bootstrapped admin completes one-time email verification before querying Firestore
+    if (isMainAdminEmail && !verifiedNow) {
+      setMyAccountDoc(null);
+      setMyAccountResolved(true);
+      setLoadingRooms(false);
+      setLoadingDepartments(false);
+      setLoadingBookings(false);
+      setLoadingAccounts(false);
+      setLoadingAuditLogs(false);
+      return;
+    }
+
     setLoadingRooms(true);
     setLoadingDepartments(true);
     setLoadingBookings(true);
     setLoadingAuditLogs(true);
 
-    const isPwd = user.providerData.some((p) => p.providerId === 'password');
-    const isBootstrapped =
-      !isPwd &&
-      Boolean(user.emailVerified) &&
-      user.email?.toLowerCase() === BOOTSTRAPPED_ADMIN_EMAIL;
+    const isBootstrapped = verifiedNow && isMainAdminEmail;
 
     // 1. Settings listener (/settings/system)
     const unsubSettings = onSnapshot(
@@ -401,7 +440,7 @@ function DashboardWorkspace() {
 
     // 2. Current user's branch/staff account document listener
     let unsubMyAccount = () => {};
-    if (user.email && (user.emailVerified || isPwd)) {
+    if (user.email && (verifiedNow || isPwd) && !isBootstrapped) {
       const myAccId = emailToAccountId(user.email);
       unsubMyAccount = onSnapshot(
         doc(db, 'accounts', myAccId),
@@ -659,7 +698,7 @@ function DashboardWorkspace() {
       unsubAuditPrimary();
       unsubAuditOwn();
     };
-  }, [authReady, user, seedDefaultWorkspace, seedDefaultDepartments]);
+  }, [authReady, user, isEmailVerified, authTick, seedDefaultWorkspace, seedDefaultDepartments]);
 
   const recordAuditLog = useCallback(
     async (params: {
@@ -676,7 +715,7 @@ function DashboardWorkspace() {
       );
       if (
         !user ||
-        (!user.emailVerified && !isCredentialActive) ||
+        (!effectiveEmailVerified && !isCredentialActive) ||
         access.isSuspended ||
         access.role === 'viewer'
       ) {
@@ -743,6 +782,83 @@ function DashboardWorkspace() {
     } catch (err) {
       setAuthError(formatAuthErrorAr(err));
     }
+  };
+
+  const handleVerifyBootstrappedViaGoogle = async () => {
+    setVerificationError(null);
+    setVerificationNotice(null);
+    setVerificationBusy(true);
+    try {
+      await linkGoogleToCurrentUser();
+      const verified = await reloadCurrentUserSession();
+      setIsEmailVerified(verified);
+      setAuthTick((t) => t + 1);
+      showToast('تم توثيق الحساب الرئيسي وربطه بنجاح');
+    } catch (err) {
+      const code =
+        typeof err === 'object' && err !== null && 'code' in err
+          ? String((err as { code?: unknown }).code || '')
+          : '';
+      if (code === 'auth/credential-already-in-use') {
+        try {
+          await signInWithGoogle();
+          setIsEmailVerified(true);
+          setAuthTick((t) => t + 1);
+          showToast('تم تسجيل الدخول وتوثيق الحساب الرئيسي عبر Google');
+          return;
+        } catch (googleErr) {
+          setVerificationError(formatAuthErrorAr(googleErr));
+          return;
+        }
+      }
+      setVerificationError(formatAuthErrorAr(err));
+    } finally {
+      setVerificationBusy(false);
+    }
+  };
+
+  const handleSendBootstrappedVerificationEmail = async () => {
+    setVerificationError(null);
+    setVerificationNotice(null);
+    setVerificationBusy(true);
+    try {
+      await sendCurrentUserVerificationEmail();
+      setVerificationNotice(
+        `تم إرسال رابط التفعيل إلى البريد ${BOOTSTRAPPED_ADMIN_EMAIL}. يرجى فتح الرسالة والضغط على الرابط ثم النقر على «تحققت من الرابط — دخول الآن».`
+      );
+    } catch (err) {
+      setVerificationError(formatAuthErrorAr(err));
+    } finally {
+      setVerificationBusy(false);
+    }
+  };
+
+  const handleCheckBootstrappedEmailVerified = async () => {
+    setVerificationError(null);
+    setVerificationNotice(null);
+    setVerificationBusy(true);
+    try {
+      const verified = await reloadCurrentUserSession();
+      if (verified) {
+        setIsEmailVerified(true);
+        setAuthTick((t) => t + 1);
+        showToast('تم التحقق من البريد الرئيسي وتفعيل صلاحيات الإدارة');
+      } else {
+        setVerificationError(
+          'لم يتم تأكيد رابط التفعيل في البريد بعد. يرجى فتح البريد والضغط على رابط التفعيل أو استخدام التوثيق الفوري عبر Google.'
+        );
+      }
+    } catch (err) {
+      setVerificationError(formatAuthErrorAr(err));
+    } finally {
+      setVerificationBusy(false);
+    }
+  };
+
+  const handleSetMainAdminPassword = async (newPassword: string) => {
+    await attachOrUpdatePasswordForCurrentUser(newPassword);
+    setAuthTick((t) => t + 1);
+    showToast('تم حفظ كلمة مرور الدخول بالبريد الرئيسي بنجاح');
   };
 
   // KPI metrics for selectedDate
@@ -1704,6 +1820,83 @@ function DashboardWorkspace() {
     );
   }
 
+  if (isUnverifiedBootstrappedAdmin) {
+    return (
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center p-6" dir="rtl">
+        <div className="bg-white border border-slate-200 rounded-xl max-w-md w-full p-6 space-y-5">
+          <div className="text-center space-y-3">
+            <div className="w-12 h-12 rounded-xl bg-teal-50 border border-teal-200 text-teal-700 flex items-center justify-center mx-auto">
+              <MailCheck className="w-6 h-6" />
+            </div>
+            <h1 className="font-display text-lg font-bold text-slate-900">
+              توثيق البريد الإلكتروني للحساب الرئيسي
+            </h1>
+            <p className="text-xs text-slate-600 leading-relaxed">
+              تم التحقق من كلمة مرور الحساب الرئيسي، ولحماية صلاحيات الإدارة الأعلى تتطلب قاعدة البيانات توثيق ملكية هذا البريد لمرة واحدة فقط:
+            </p>
+            <div className="bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-xs font-mono-num text-slate-800" dir="ltr">
+              {user.email}
+            </div>
+          </div>
+
+          {verificationError && (
+            <div className="bg-red-50 border border-red-200 rounded-lg px-3.5 py-2.5 text-xs text-red-800 leading-relaxed">
+              {verificationError}
+            </div>
+          )}
+
+          {verificationNotice && (
+            <div className="bg-emerald-50 border border-emerald-200 rounded-lg px-3.5 py-2.5 text-xs text-emerald-800 leading-relaxed">
+              {verificationNotice}
+            </div>
+          )}
+
+          <div className="space-y-2.5">
+            <button
+              type="button"
+              disabled={verificationBusy}
+              onClick={() => void handleVerifyBootstrappedViaGoogle()}
+              className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-teal-700 text-white text-xs font-semibold hover:bg-teal-800 disabled:opacity-60 cursor-pointer"
+            >
+              <ShieldCheck className="w-4 h-4" />
+              <span>توثيق فوري عبر Google (مرة واحدة)</span>
+            </button>
+
+            <button
+              type="button"
+              disabled={verificationBusy}
+              onClick={() => void handleSendBootstrappedVerificationEmail()}
+              className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg border border-slate-200 bg-white text-slate-800 text-xs font-semibold hover:bg-slate-50 disabled:opacity-60 cursor-pointer"
+            >
+              <KeyRound className="w-4 h-4 text-teal-700" />
+              <span>إرسال رابط التفعيل إلى البريد</span>
+            </button>
+
+            <button
+              type="button"
+              disabled={verificationBusy}
+              onClick={() => void handleCheckBootstrappedEmailVerified()}
+              className="w-full inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg border border-teal-200 bg-teal-50 text-teal-900 text-xs font-semibold hover:bg-teal-100 disabled:opacity-60 cursor-pointer"
+            >
+              <RefreshCw className="w-3.5 h-3.5" />
+              <span>تحققت من الرابط — دخول الآن</span>
+            </button>
+
+            <button
+              type="button"
+              disabled={verificationBusy}
+              onClick={() => void signOutUser()}
+              className="w-full inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-slate-900 text-white text-xs font-semibold hover:bg-slate-800 cursor-pointer"
+            >
+              <LogOut className="w-4 h-4" />
+              <span>تسجيل الخروج</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   if (!myAccountResolved) {
     return (
       <div className="min-h-screen bg-slate-50 flex items-center justify-center" dir="rtl">
@@ -2081,6 +2274,12 @@ function DashboardWorkspace() {
               bookings={bookings}
               accounts={accounts}
               canManageAccounts={access.canManageAccounts}
+              isBootstrappedAdmin={access.isBootstrappedAdmin}
+              currentUserEmail={user.email || ''}
+              hasPasswordLinked={isPasswordUser}
+              onSetAdminPassword={
+                access.isBootstrappedAdmin ? handleSetMainAdminPassword : undefined
+              }
               onSaveSettings={persistSettingsDoc}
               onRecordBackup={handleRecordBackup}
               onRestoreBackup={handleRestoreBackup}

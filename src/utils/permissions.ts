@@ -196,9 +196,7 @@ export function resolveEffectiveAccess(params: {
     settings,
   } = params;
   const isBootstrappedAdmin =
-    !isPasswordProvider &&
-    Boolean(emailVerified) &&
-    email?.toLowerCase() === BOOTSTRAPPED_ADMIN_EMAIL;
+    Boolean(emailVerified) && email?.toLowerCase() === BOOTSTRAPPED_ADMIN_EMAIL;
 
   if (isBootstrappedAdmin) {
     return {
