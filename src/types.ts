@@ -6,6 +6,7 @@ export type BookingType = 'lecture' | 'workshop' | 'exam' | 'seminar';
 export type DepartmentStatus = 'active' | 'inactive';
 export type UserRole = 'admin' | 'branch_supervisor' | 'coordinator' | 'viewer';
 export type AccountStatus = 'active' | 'suspended';
+export type AccountAuthType = 'google' | 'credentials';
 export type ViewTab =
   | 'schedule'
   | 'bookings'
@@ -58,6 +59,9 @@ export interface AccountPermissions {
 export interface AccountRecord {
   id: string;
   email: string;
+  username?: string;
+  authType?: AccountAuthType;
+  authUid?: string;
   displayName: string;
   branchName: string;
   role: UserRole;
@@ -165,6 +169,7 @@ export const BLUEPRINT_LIMITS = {
   CAPACITY_MAX: 500,
   IMAGE_URL_MAX: 300,
   EMAIL_MAX: 160,
+  USERNAME_MAX: 64,
   DISPLAY_NAME_MAX: 80,
   BRANCH_NAME_MAX: 80,
   ORG_NAME_MAX: 100,

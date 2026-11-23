@@ -6,11 +6,48 @@ import {
   UserRole,
 } from '../types';
 
+export const INTERNAL_AUTH_DOMAIN = 'shuhada-complex.app';
+
 export function emailToAccountId(email: string): string {
   return email
     .trim()
     .toLowerCase()
     .replace(/[^a-zA-Z0-9_-]/g, '_');
+}
+
+export function normalizeUsername(raw: string): string {
+  return raw.trim().toLowerCase();
+}
+
+export function isValidUsername(username: string): boolean {
+  return /^[a-z0-9._-]{3,40}$/.test(normalizeUsername(username));
+}
+
+export function usernameToAuthEmail(identifier: string): string {
+  const clean = identifier.trim().toLowerCase();
+  if (!clean) return '';
+  if (clean.includes('@')) return clean;
+  return `${clean}@${INTERNAL_AUTH_DOMAIN}`;
+}
+
+export function isInternalAuthEmail(email?: string | null): boolean {
+  if (!email) return false;
+  return email.trim().toLowerCase().endsWith(`@${INTERNAL_AUTH_DOMAIN}`);
+}
+
+export function formatAccountLoginIdentifier(
+  acc: Pick<AccountRecord, 'email' | 'username' | 'authType'>
+): string {
+  if (acc.username && acc.username.trim()) return acc.username.trim();
+  if (isInternalAuthEmail(acc.email)) return acc.email.split('@')[0];
+  return acc.email;
+}
+
+export function generateReadablePassword(length = 10): string {
+  const charset = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789@#';
+  const bytes = new Uint8Array(length);
+  crypto.getRandomValues(bytes);
+  return Array.from(bytes, (b) => charset[b % charset.length]).join('');
 }
 
 export const ROLE_LABEL_AR: Record<UserRole, string> = {
@@ -145,13 +182,23 @@ export interface EffectiveAccess {
 export function resolveEffectiveAccess(params: {
   email?: string | null;
   emailVerified?: boolean;
+  isPasswordProvider?: boolean;
   hasAdminsDoc: boolean;
   account: AccountRecord | null;
   settings: SystemSettings;
 }): EffectiveAccess {
-  const { email, emailVerified, hasAdminsDoc, account, settings } = params;
+  const {
+    email,
+    emailVerified,
+    isPasswordProvider = false,
+    hasAdminsDoc,
+    account,
+    settings,
+  } = params;
   const isBootstrappedAdmin =
-    Boolean(emailVerified) && email?.toLowerCase() === BOOTSTRAPPED_ADMIN_EMAIL;
+    !isPasswordProvider &&
+    Boolean(emailVerified) &&
+    email?.toLowerCase() === BOOTSTRAPPED_ADMIN_EMAIL;
 
   if (isBootstrappedAdmin) {
     return {
@@ -302,19 +349,20 @@ export function resolveEffectiveAccess(params: {
     };
   }
 
+  const blockedByCredentials = isPasswordProvider;
   return {
     role: 'coordinator',
     isSuspended: false,
-    isAccessBlocked: Boolean(settings.strictAccountAccess),
+    isAccessBlocked: blockedByCredentials || Boolean(settings.strictAccountAccess),
     isBootstrappedAdmin: false,
     isFullAdmin: false,
-    canCreateBookings: !settings.strictAccountAccess,
+    canCreateBookings: !blockedByCredentials && !settings.strictAccountAccess,
     canApproveBookings: false,
     canManageBookings: false,
     canManageClassrooms: false,
     canManageDepartments: false,
-    canViewReports: !settings.strictAccountAccess,
-    canViewAuditLog: !settings.strictAccountAccess,
+    canViewReports: !blockedByCredentials && !settings.strictAccountAccess,
+    canViewAuditLog: !blockedByCredentials && !settings.strictAccountAccess,
     canManageSettings: false,
     canManageAccounts: false,
     branchName: settings.organizationName,

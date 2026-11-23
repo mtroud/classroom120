@@ -334,6 +334,18 @@
           "minLength": 3,
           "maxLength": 160
         },
+        "username": {
+          "type": "string",
+          "maxLength": 64
+        },
+        "authType": {
+          "type": "string",
+          "enum": ["google", "credentials"]
+        },
+        "authUid": {
+          "type": "string",
+          "maxLength": 128
+        },
         "displayName": {
           "type": "string",
           "minLength": 2,

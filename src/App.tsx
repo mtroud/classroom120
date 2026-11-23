@@ -37,7 +37,10 @@ import {
   writeBatch,
 } from 'firebase/firestore';
 import { AccountDraft, AccountModal } from './components/AccountModal';
-import { AccountsView } from './components/AccountsView';
+import {
+  AccountsView,
+  CreatedCredentialsNotice,
+} from './components/AccountsView';
 import { AuditLogView } from './components/AuditLogView';
 import { AuthLanding } from './components/AuthLanding';
 import { BookingDraft, BookingModal } from './components/BookingModal';
@@ -61,7 +64,10 @@ import {
   OperationType,
   auth,
   db,
+  formatAuthErrorAr,
   handleFirestoreError,
+  provisionCredentialsUser,
+  signInWithCredentials,
   signInWithGoogle,
   signOutUser,
 } from './firebase';
@@ -84,7 +90,9 @@ import {
   ROLE_LABEL_AR,
   defaultPermissionsForRole,
   emailToAccountId,
+  isInternalAuthEmail,
   resolveEffectiveAccess,
+  usernameToAuthEmail,
 } from './utils/permissions';
 import {
   BOOKING_STATUS_LABEL,
@@ -107,6 +115,9 @@ function DashboardWorkspace() {
   const [authError, setAuthError] = useState<string | null>(null);
   const [hasAdminsDoc, setHasAdminsDoc] = useState(false);
   const [myAccountDoc, setMyAccountDoc] = useState<AccountRecord | null>(null);
+  const [myAccountResolved, setMyAccountResolved] = useState(false);
+  const [lastCreatedCredentials, setLastCreatedCredentials] =
+    useState<CreatedCredentialsNotice | null>(null);
 
   const [classrooms, setClassrooms] = useState<Classroom[]>([]);
   const [departments, setDepartments] = useState<Department[]>([]);
@@ -171,6 +182,9 @@ function DashboardWorkspace() {
   const [accountModalOpen, setAccountModalOpen] = useState(false);
   const [accountDraft, setAccountDraft] = useState<AccountDraft>({
     email: '',
+    username: '',
+    authType: 'credentials',
+    password: '',
     displayName: '',
     branchName: '',
     role: 'branch_supervisor',
@@ -192,19 +206,25 @@ function DashboardWorkspace() {
     }, 3500);
   }, []);
 
+  const isPasswordUser = useMemo(
+    () => Boolean(user?.providerData?.some((p) => p.providerId === 'password')),
+    [user]
+  );
+
   const access = useMemo(
     () =>
       resolveEffectiveAccess({
         email: user?.email,
         emailVerified: user?.emailVerified,
+        isPasswordProvider: isPasswordUser,
         hasAdminsDoc,
         account: myAccountDoc,
         settings: systemSettings,
       }),
-    [user, hasAdminsDoc, myAccountDoc, systemSettings]
+    [user, isPasswordUser, hasAdminsDoc, myAccountDoc, systemSettings]
   );
 
-  // Auth listener & user profile provisioning
+  // Auth listener & admin doc check
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       setUser(firebaseUser);
@@ -213,6 +233,8 @@ function DashboardWorkspace() {
       if (!firebaseUser) {
         setHasAdminsDoc(false);
         setMyAccountDoc(null);
+        setMyAccountResolved(false);
+        setLastCreatedCredentials(null);
         setClassrooms([]);
         setDepartments([]);
         setBookings([]);
@@ -229,12 +251,15 @@ function DashboardWorkspace() {
         return;
       }
 
+      setMyAccountResolved(false);
+      const isPwd = firebaseUser.providerData.some((p) => p.providerId === 'password');
       const bootstrapped =
-        firebaseUser.emailVerified &&
+        !isPwd &&
+        Boolean(firebaseUser.emailVerified) &&
         firebaseUser.email?.toLowerCase() === BOOTSTRAPPED_ADMIN_EMAIL;
 
       let adminFlag = false;
-      if (!bootstrapped) {
+      if (!bootstrapped && !isPwd && firebaseUser.emailVerified) {
         try {
           const adminSnap = await getDoc(doc(db, 'admins', firebaseUser.uid));
           adminFlag = adminSnap.exists();
@@ -243,34 +268,47 @@ function DashboardWorkspace() {
         }
       }
       setHasAdminsDoc(adminFlag);
+    });
 
-      // Ensure private profile exists without self-assigning admin role
-      const profileRef = doc(db, 'users', firebaseUser.uid, 'private', 'info');
+    return () => unsubscribe();
+  }, []);
+
+  // Provision private profile once account/access state is resolved & active
+  useEffect(() => {
+    if (!authReady || !user || !myAccountResolved || access.isAccessBlocked) return;
+
+    const profileRef = doc(db, 'users', user.uid, 'private', 'info');
+    let cancelled = false;
+    void (async () => {
       try {
         const existingSnap = await getDoc(profileRef);
-        if (!existingSnap.exists()) {
+        if (!existingSnap.exists() && !cancelled) {
           await setDoc(profileRef, {
-            uid: firebaseUser.uid,
-            email: (firebaseUser.email || '').slice(0, 160),
-            displayName: (firebaseUser.displayName || 'مستخدم').slice(0, 80),
-            photoURL: (firebaseUser.photoURL || '').slice(0, 300),
-            department: 'قسم مجمع سيد الشهداء (ع) الخدمي',
-            role: bootstrapped || adminFlag ? 'admin' : 'coordinator',
+            uid: user.uid,
+            email: (user.email || '').slice(0, 160),
+            displayName: (myAccountDoc?.displayName || user.displayName || 'مستخدم').slice(0, 80),
+            photoURL: (user.photoURL || '').slice(0, 300),
+            department: (myAccountDoc?.branchName || 'قسم مجمع سيد الشهداء (ع) الخدمي').slice(0, 80),
+            role: access.isFullAdmin ? 'admin' : 'coordinator',
             createdAt: serverTimestamp(),
             updatedAt: serverTimestamp(),
           });
         }
       } catch (err) {
-        handleFirestoreError(
-          err,
-          OperationType.WRITE,
-          `users/${firebaseUser.uid}/private/info`
-        );
+        if (!cancelled) {
+          handleFirestoreError(
+            err,
+            OperationType.WRITE,
+            `users/${user.uid}/private/info`
+          );
+        }
       }
-    });
+    })();
 
-    return () => unsubscribe();
-  }, []);
+    return () => {
+      cancelled = true;
+    };
+  }, [authReady, user, myAccountResolved, access.isAccessBlocked, access.isFullAdmin, myAccountDoc]);
 
   const seedDefaultWorkspace = useCallback(async () => {
     if (!user || !access.canManageClassrooms) return;
@@ -336,7 +374,9 @@ function DashboardWorkspace() {
     setLoadingBookings(true);
     setLoadingAuditLogs(true);
 
+    const isPwd = user.providerData.some((p) => p.providerId === 'password');
     const isBootstrapped =
+      !isPwd &&
       Boolean(user.emailVerified) &&
       user.email?.toLowerCase() === BOOTSTRAPPED_ADMIN_EMAIL;
 
@@ -361,26 +401,34 @@ function DashboardWorkspace() {
 
     // 2. Current user's branch/staff account document listener
     let unsubMyAccount = () => {};
-    if (user.email && user.emailVerified) {
+    if (user.email && (user.emailVerified || isPwd)) {
       const myAccId = emailToAccountId(user.email);
       unsubMyAccount = onSnapshot(
         doc(db, 'accounts', myAccId),
         (snapshot) => {
           if (snapshot.exists()) {
-            setMyAccountDoc({
-              ...(snapshot.data() as AccountRecord),
-              id: snapshot.id,
-            });
+            const data = snapshot.data() as AccountRecord;
+            if (isPwd && (data.authType !== 'credentials' || data.authUid !== user.uid)) {
+              setMyAccountDoc(null);
+            } else {
+              setMyAccountDoc({
+                ...data,
+                id: snapshot.id,
+              });
+            }
           } else {
             setMyAccountDoc(null);
           }
+          setMyAccountResolved(true);
         },
         () => {
           setMyAccountDoc(null);
+          setMyAccountResolved(true);
         }
       );
     } else {
       setMyAccountDoc(null);
+      setMyAccountResolved(true);
     }
 
     // 3. Full accounts directory (bootstrapped admin only)
@@ -621,7 +669,17 @@ function DashboardWorkspace() {
       action: AuditActionType;
       summary: string;
     }) => {
-      if (!user || !user.emailVerified || access.isSuspended || access.role === 'viewer') {
+      const isCredentialActive = Boolean(
+        isPasswordUser &&
+          myAccountDoc?.authType === 'credentials' &&
+          myAccountDoc?.status === 'active'
+      );
+      if (
+        !user ||
+        (!user.emailVerified && !isCredentialActive) ||
+        access.isSuspended ||
+        access.role === 'viewer'
+      ) {
         return;
       }
       const logId = generateSafeId('log');
@@ -665,7 +723,7 @@ function DashboardWorkspace() {
         console.error('Audit log write skipped:', err);
       }
     },
-    [user, access, myAccountDoc, systemSettings.organizationName]
+    [user, isPasswordUser, access, myAccountDoc, systemSettings.organizationName]
   );
 
   const handleSignIn = async () => {
@@ -673,11 +731,17 @@ function DashboardWorkspace() {
     try {
       await signInWithGoogle();
     } catch (err) {
-      setAuthError(
-        err instanceof Error
-          ? `تعذر تسجيل الدخول: ${err.message}`
-          : 'حدث خطأ أثناء تسجيل الدخول.'
-      );
+      setAuthError(formatAuthErrorAr(err));
+    }
+  };
+
+  const handleCredentialsSignIn = async (identifier: string, password: string) => {
+    setAuthError(null);
+    try {
+      const authEmail = usernameToAuthEmail(identifier);
+      await signInWithCredentials(authEmail, password);
+    } catch (err) {
+      setAuthError(formatAuthErrorAr(err));
     }
   };
 
@@ -1175,6 +1239,9 @@ function DashboardWorkspace() {
   const openAddAccount = () => {
     setAccountDraft({
       email: '',
+      username: '',
+      authType: 'credentials',
+      password: '',
       displayName: '',
       branchName: '',
       role: 'branch_supervisor',
@@ -1189,6 +1256,9 @@ function DashboardWorkspace() {
     setAccountDraft({
       id: acc.id,
       email: acc.email,
+      username: acc.username || '',
+      authType: acc.authType || (isInternalAuthEmail(acc.email) ? 'credentials' : 'google'),
+      authUid: acc.authUid || '',
       displayName: acc.displayName,
       branchName: acc.branchName,
       role: acc.role,
@@ -1209,6 +1279,12 @@ function DashboardWorkspace() {
       try {
         await updateDoc(doc(db, 'accounts', accId), {
           email: draft.email,
+          username: (draft.username || existing?.username || '').slice(
+            0,
+            BLUEPRINT_LIMITS.USERNAME_MAX
+          ),
+          authType: draft.authType || existing?.authType || 'google',
+          authUid: (draft.authUid || existing?.authUid || '').slice(0, 128),
           displayName: draft.displayName,
           branchName: draft.branchName,
           role: draft.role,
@@ -1229,10 +1305,26 @@ function DashboardWorkspace() {
         handleFirestoreError(err, OperationType.UPDATE, path);
       }
     } else {
+      let provisionedAuthUid = '';
+      if (draft.authType === 'credentials') {
+        try {
+          provisionedAuthUid = await provisionCredentialsUser({
+            email: draft.email,
+            password: draft.password || '',
+            displayName: draft.displayName,
+          });
+        } catch (err) {
+          throw new Error(formatAuthErrorAr(err));
+        }
+      }
+
       try {
         await setDoc(doc(db, 'accounts', accId), {
           id: accId,
           email: draft.email,
+          username: (draft.username || '').slice(0, BLUEPRINT_LIMITS.USERNAME_MAX),
+          authType: draft.authType,
+          authUid: provisionedAuthUid,
           displayName: draft.displayName,
           branchName: draft.branchName,
           role: draft.role,
@@ -1248,8 +1340,17 @@ function DashboardWorkspace() {
           entityId: accId,
           entityLabel: `${draft.displayName} (${draft.branchName})`,
           action: 'create',
-          summary: `إضافة حساب جديد بصلاحية ${ROLE_LABEL_AR[draft.role]}`,
+          summary: `إضافة حساب جديد (${draft.authType === 'credentials' ? 'يوزر دخول عادي' : 'Google'}) بصلاحية ${ROLE_LABEL_AR[draft.role]}`,
         });
+        if (draft.authType === 'credentials') {
+          setLastCreatedCredentials({
+            displayName: draft.displayName,
+            username: draft.username || draft.email,
+            password: draft.password || '',
+            branchName: draft.branchName,
+            role: draft.role,
+          });
+        }
         showToast('تمت إضافة الحساب وتفعيل صلاحياته');
       } catch (err) {
         handleFirestoreError(err, OperationType.CREATE, path);
@@ -1529,6 +1630,9 @@ function DashboardWorkspace() {
             : defaultPermissionsForRole(role);
           const shared = {
             email: email.slice(0, BLUEPRINT_LIMITS.EMAIL_MAX),
+            username: String(a.username || '').slice(0, BLUEPRINT_LIMITS.USERNAME_MAX),
+            authType: a.authType === 'credentials' ? 'credentials' : 'google',
+            authUid: String(a.authUid || '').slice(0, 128),
             displayName: String(a.displayName).slice(0, BLUEPRINT_LIMITS.DISPLAY_NAME_MAX),
             branchName: String(a.branchName || 'قسم مجمع سيد الشهداء (ع) الخدمي').slice(0, BLUEPRINT_LIMITS.BRANCH_NAME_MAX),
             role,
@@ -1591,10 +1695,28 @@ function DashboardWorkspace() {
   }
 
   if (!user) {
-    return <AuthLanding onSignIn={handleSignIn} authError={authError} />;
+    return (
+      <AuthLanding
+        onSignIn={handleSignIn}
+        onCredentialsSignIn={handleCredentialsSignIn}
+        authError={authError}
+      />
+    );
+  }
+
+  if (!myAccountResolved) {
+    return (
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center" dir="rtl">
+        <div className="text-sm font-medium text-slate-600">جاري التحقق من صلاحيات الحساب...</div>
+      </div>
+    );
   }
 
   if (access.isAccessBlocked) {
+    const displayedIdentifier =
+      user.email && isInternalAuthEmail(user.email)
+        ? user.email.split('@')[0]
+        : user.email;
     return (
       <div className="min-h-screen bg-slate-50 flex items-center justify-center p-6" dir="rtl">
         <div className="bg-white border border-slate-200 rounded-xl max-w-md w-full p-6 text-center space-y-4">
@@ -1609,11 +1731,13 @@ function DashboardWorkspace() {
           <p className="text-xs text-slate-600 leading-relaxed">
             {access.isSuspended
               ? 'يرجى مراجعة إدارة قسم مجمع سيد الشهداء (ع) الخدمي لإعادة تفعيل الحساب.'
-              : 'النظام مضبوط حالياً على وضع الدخول الحصري. يرجى تزويد مدير المنظومة ببريدك الإلكتروني لإضافتك ومنحك الصلاحية المناسبة.'}
+              : isPasswordUser
+                ? 'هذا اليوزر غير مربوط بحساب فعال في سجل الصلاحيات. يرجى مراجعة مدير المنظومة.'
+                : 'النظام مضبوط حالياً على وضع الدخول الحصري. يرجى تزويد مدير المنظومة ببريدك الإلكتروني لإضافتك ومنحك الصلاحية المناسبة.'}
           </p>
-          {user.email && (
-            <div className="bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-xs font-mono-num text-slate-800">
-              {user.email}
+          {displayedIdentifier && (
+            <div className="bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-xs font-mono-num text-slate-800" dir="ltr">
+              {displayedIdentifier}
             </div>
           )}
           <button
@@ -1940,6 +2064,8 @@ function DashboardWorkspace() {
             <AccountsView
               accounts={accounts}
               isLoading={loadingAccounts}
+              lastCreatedCredentials={lastCreatedCredentials}
+              onDismissCreatedCredentials={() => setLastCreatedCredentials(null)}
               onAddAccount={openAddAccount}
               onEditAccount={openEditAccount}
               onToggleStatus={handleToggleAccountStatus}

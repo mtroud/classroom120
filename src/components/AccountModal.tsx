@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
-import { AlertCircle, X } from 'lucide-react';
+import { AlertCircle, Eye, EyeOff, RefreshCw, X } from 'lucide-react';
 import {
+  AccountAuthType,
   AccountPermissions,
   AccountStatus,
   BLUEPRINT_LIMITS,
@@ -12,11 +13,20 @@ import {
   PERMISSION_ITEMS,
   ROLE_LABEL_AR,
   defaultPermissionsForRole,
+  formatAccountLoginIdentifier,
+  generateReadablePassword,
+  isValidUsername,
+  normalizeUsername,
+  usernameToAuthEmail,
 } from '../utils/permissions';
 
 export interface AccountDraft {
   id?: string;
   email: string;
+  username: string;
+  authType: AccountAuthType;
+  authUid?: string;
+  password?: string;
   displayName: string;
   branchName: string;
   role: UserRole;
@@ -41,15 +51,19 @@ export function AccountModal({
   departments,
 }: AccountModalProps) {
   const [form, setForm] = useState<AccountDraft>(initialDraft);
+  const [showPassword, setShowPassword] = useState(false);
   const [saving, setSaving] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   useEffect(() => {
     setForm(initialDraft);
+    setShowPassword(false);
     setErrorMsg(null);
   }, [initialDraft, isOpen]);
 
   if (!isOpen) return null;
+
+  const isEditing = Boolean(form.id);
 
   const handleRoleChange = (nextRole: UserRole) => {
     setForm((prev) => ({
@@ -73,11 +87,45 @@ export function AccountModal({
     e.preventDefault();
     setErrorMsg(null);
 
-    const normalizedEmail = form.email.trim().toLowerCase();
-    if (!normalizedEmail.includes('@') || normalizedEmail.length < 5) {
-      setErrorMsg('يرجى إدخال بريد إلكتروني (Google) صالح.');
-      return;
+    let normalizedEmail = form.email.trim().toLowerCase();
+    let normalizedUsername = normalizeUsername(form.username || '');
+
+    if (!isEditing) {
+      if (form.authType === 'credentials') {
+        if (!normalizedUsername) {
+          setErrorMsg('يرجى إدخال اسم المستخدم (اليوزر).');
+          return;
+        }
+        if (normalizedUsername.includes('@')) {
+          if (normalizedUsername.length < 5) {
+            setErrorMsg('يرجى إدخال بريد إلكتروني صالح للدخول.');
+            return;
+          }
+          normalizedEmail = normalizedUsername;
+        } else {
+          if (!isValidUsername(normalizedUsername)) {
+            setErrorMsg(
+              'اسم المستخدم يجب أن يتكون من 3 إلى 40 حرفاً إنجليزياً أو أرقام أو الرموز (. _ -) فقط.'
+            );
+            return;
+          }
+          normalizedEmail = usernameToAuthEmail(normalizedUsername);
+        }
+
+        const pwd = form.password || '';
+        if (pwd.length < 6) {
+          setErrorMsg('كلمة المرور يجب أن لا تقل عن 6 أحرف.');
+          return;
+        }
+      } else {
+        if (!normalizedEmail.includes('@') || normalizedEmail.length < 5) {
+          setErrorMsg('يرجى إدخال بريد إلكتروني (Google) صالح.');
+          return;
+        }
+        normalizedUsername = '';
+      }
     }
+
     if (form.displayName.trim().length < 2) {
       setErrorMsg('يرجى إدخال اسم المنتسب أو مسؤول الشعبة (حرفين على الأقل).');
       return;
@@ -92,6 +140,7 @@ export function AccountModal({
       await onSave({
         ...form,
         email: normalizedEmail.slice(0, BLUEPRINT_LIMITS.EMAIL_MAX),
+        username: normalizedUsername.slice(0, BLUEPRINT_LIMITS.USERNAME_MAX),
         displayName: form.displayName.trim().slice(0, BLUEPRINT_LIMITS.DISPLAY_NAME_MAX),
         branchName: form.branchName.trim().slice(0, BLUEPRINT_LIMITS.BRANCH_NAME_MAX),
         notes: form.notes.trim().slice(0, BLUEPRINT_LIMITS.NOTES_MAX),
@@ -125,10 +174,10 @@ export function AccountModal({
               id="account-modal-title"
               className="font-display text-lg font-bold text-slate-900"
             >
-              {form.id ? 'تعديل صلاحيات الحساب' : 'إضافة حساب شعبة أو منتسب جديد'}
+              {isEditing ? 'تعديل صلاحيات الحساب' : 'إضافة حساب شعبة أو منتسب جديد'}
             </h2>
             <p className="text-xs text-slate-500 mt-0.5">
-              تخصيص الصلاحيات التشغيلية حسب الشعبة أو إتاحة الاطلاع للمنتسبين عبر حساب Google
+              تخصيص حساب دخول عادي (يوزر وكلمة مرور) أو ربط بريد Google مع تحديد الصلاحيات
             </p>
           </div>
           <button
@@ -149,23 +198,147 @@ export function AccountModal({
             </div>
           )}
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div className="sm:col-span-2">
-              <label className="block text-xs font-medium text-slate-700 mb-1.5">
-                البريد الإلكتروني المعتمد (Google Email)
-              </label>
-              <input
-                type="email"
-                dir="ltr"
-                disabled={Boolean(form.id)}
-                maxLength={BLUEPRINT_LIMITS.EMAIL_MAX}
-                value={form.email}
-                onChange={(e) => setForm({ ...form, email: e.target.value })}
-                placeholder="name@gmail.com"
-                className="w-full rounded-lg border border-slate-200 bg-white disabled:bg-slate-50 disabled:text-slate-500 px-3 py-2.5 text-sm font-mono-num text-slate-900 focus:outline-none focus:border-teal-700 text-left"
-                required
-              />
+          {!isEditing ? (
+            <div className="space-y-3">
+              <span className="block text-xs font-medium text-slate-700">
+                طريقة تسجيل الدخول للحساب
+              </span>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 p-1 bg-slate-100 rounded-lg">
+                <button
+                  type="button"
+                  onClick={() =>
+                    setForm((prev) => ({
+                      ...prev,
+                      authType: 'credentials',
+                    }))
+                  }
+                  className={`px-3 py-2 rounded-md text-xs font-semibold transition-colors whitespace-nowrap cursor-pointer ${
+                    form.authType === 'credentials'
+                      ? 'bg-white text-slate-900 shadow-sm'
+                      : 'text-slate-600 hover:text-slate-900'
+                  }`}
+                >
+                  دخول عادي (يوزر + كلمة مرور)
+                </button>
+                <button
+                  type="button"
+                  onClick={() =>
+                    setForm((prev) => ({
+                      ...prev,
+                      authType: 'google',
+                    }))
+                  }
+                  className={`px-3 py-2 rounded-md text-xs font-semibold transition-colors whitespace-nowrap cursor-pointer ${
+                    form.authType === 'google'
+                      ? 'bg-white text-slate-900 shadow-sm'
+                      : 'text-slate-600 hover:text-slate-900'
+                  }`}
+                >
+                  تسجيل عبر بريد Google
+                </button>
+              </div>
             </div>
+          ) : (
+            <div className="bg-slate-50 border border-slate-200 rounded-lg px-4 py-3 flex flex-wrap items-center justify-between gap-2 text-xs">
+              <div>
+                <span className="text-slate-500">معرّف الدخول: </span>
+                <span className="font-mono-num font-semibold text-slate-900" dir="ltr">
+                  {formatAccountLoginIdentifier(form)}
+                </span>
+              </div>
+              <span className="text-slate-600 font-medium">
+                {form.authType === 'credentials' ? 'دخول عادي (يوزر وكلمة مرور)' : 'حساب Google'}
+              </span>
+            </div>
+          )}
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {!isEditing && form.authType === 'credentials' && (
+              <>
+                <div>
+                  <label className="block text-xs font-medium text-slate-700 mb-1.5">
+                    اسم المستخدم (اليوزر)
+                  </label>
+                  <input
+                    type="text"
+                    dir="ltr"
+                    maxLength={BLUEPRINT_LIMITS.USERNAME_MAX}
+                    value={form.username}
+                    onChange={(e) => setForm({ ...form, username: e.target.value })}
+                    placeholder="branch_media"
+                    className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm font-mono-num text-slate-900 focus:outline-none focus:border-teal-700 text-left"
+                    required
+                  />
+                  <p className="text-[11px] text-slate-500 mt-1">
+                    أحرف إنجليزية وأرقام أو (. _ -) فقط
+                  </p>
+                </div>
+
+                <div>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <label className="block text-xs font-medium text-slate-700">
+                      كلمة المرور المعطاة
+                    </label>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setForm((prev) => ({
+                          ...prev,
+                          password: generateReadablePassword(10),
+                        }));
+                        setShowPassword(true);
+                      }}
+                      className="inline-flex items-center gap-1 text-[11px] font-medium text-teal-700 hover:text-teal-800 cursor-pointer"
+                    >
+                      <RefreshCw className="w-3 h-3" />
+                      <span>توليد كلمة مرور</span>
+                    </button>
+                  </div>
+                  <div className="relative">
+                    <input
+                      type={showPassword ? 'text' : 'password'}
+                      dir="ltr"
+                      minLength={6}
+                      value={form.password || ''}
+                      onChange={(e) => setForm({ ...form, password: e.target.value })}
+                      placeholder="6 أحرف على الأقل"
+                      className="w-full rounded-lg border border-slate-200 bg-white pr-3 pl-9 py-2.5 text-sm font-mono-num text-slate-900 focus:outline-none focus:border-teal-700 text-left"
+                      required
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword((prev) => !prev)}
+                      aria-label={showPassword ? 'إخفاء' : 'إظهار'}
+                      className="absolute left-2.5 top-1/2 -translate-y-1/2 p-1 text-slate-400 hover:text-slate-700 cursor-pointer"
+                    >
+                      {showPassword ? (
+                        <EyeOff className="w-4 h-4" />
+                      ) : (
+                        <Eye className="w-4 h-4" />
+                      )}
+                    </button>
+                  </div>
+                </div>
+              </>
+            )}
+
+            {!isEditing && form.authType === 'google' && (
+              <div className="sm:col-span-2">
+                <label className="block text-xs font-medium text-slate-700 mb-1.5">
+                  البريد الإلكتروني المعتمد (Google Email)
+                </label>
+                <input
+                  type="email"
+                  dir="ltr"
+                  maxLength={BLUEPRINT_LIMITS.EMAIL_MAX}
+                  value={form.email}
+                  onChange={(e) => setForm({ ...form, email: e.target.value })}
+                  placeholder="name@gmail.com"
+                  className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm font-mono-num text-slate-900 focus:outline-none focus:border-teal-700 text-left"
+                  required
+                />
+              </div>
+            )}
 
             <div>
               <label className="block text-xs font-medium text-slate-700 mb-1.5">

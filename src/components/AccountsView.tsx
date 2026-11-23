@@ -1,19 +1,36 @@
 import { useMemo, useState } from 'react';
 import {
+  Check,
   CheckCircle2,
+  Copy,
   PauseCircle,
   Pencil,
   Plus,
   Search,
   ShieldCheck,
   Trash2,
+  X,
 } from 'lucide-react';
 import { AccountRecord, UserRole } from '../types';
-import { PERMISSION_ITEMS, ROLE_LABEL_AR } from '../utils/permissions';
+import {
+  PERMISSION_ITEMS,
+  ROLE_LABEL_AR,
+  formatAccountLoginIdentifier,
+} from '../utils/permissions';
+
+export interface CreatedCredentialsNotice {
+  displayName: string;
+  username: string;
+  password: string;
+  branchName: string;
+  role: UserRole;
+}
 
 interface AccountsViewProps {
   accounts: AccountRecord[];
   isLoading: boolean;
+  lastCreatedCredentials?: CreatedCredentialsNotice | null;
+  onDismissCreatedCredentials?: () => void;
   onAddAccount: () => void;
   onEditAccount: (account: AccountRecord) => void;
   onToggleStatus: (account: AccountRecord) => Promise<void>;
@@ -23,6 +40,8 @@ interface AccountsViewProps {
 export function AccountsView({
   accounts,
   isLoading,
+  lastCreatedCredentials,
+  onDismissCreatedCredentials,
   onAddAccount,
   onEditAccount,
   onToggleStatus,
@@ -31,6 +50,7 @@ export function AccountsView({
   const [search, setSearch] = useState('');
   const [roleFilter, setRoleFilter] = useState<'all' | UserRole>('all');
   const [busyId, setBusyId] = useState<string | null>(null);
+  const [copiedCreds, setCopiedCreds] = useState(false);
 
   const counts = useMemo(() => {
     return {
@@ -46,12 +66,24 @@ export function AccountsView({
     return accounts.filter((a) => {
       if (roleFilter !== 'all' && a.role !== roleFilter) return false;
       if (q) {
-        const hay = `${a.displayName} ${a.email} ${a.branchName}`.toLowerCase();
+        const hay = `${a.displayName} ${a.email} ${a.username || ''} ${a.branchName}`.toLowerCase();
         if (!hay.includes(q)) return false;
       }
       return true;
     });
   }, [accounts, roleFilter, search]);
+
+  const handleCopyCredentials = async () => {
+    if (!lastCreatedCredentials) return;
+    const text = `بيانات الدخول إلى منظومة قاعات مجمع سيد الشهداء (ع)\nالاسم: ${lastCreatedCredentials.displayName}\nالشعبة: ${lastCreatedCredentials.branchName}\nاليوزر: ${lastCreatedCredentials.username}\nكلمة المرور: ${lastCreatedCredentials.password}`;
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopiedCreds(true);
+      setTimeout(() => setCopiedCreds(false), 2500);
+    } catch {
+      // Clipboard fallback ignored cleanly
+    }
+  };
 
   const summarizePermissions = (acc: AccountRecord): string => {
     if (acc.role === 'admin') return 'صلاحية إدارة شاملة';
@@ -106,6 +138,58 @@ export function AccountsView({
           <span>إضافة حساب جديد</span>
         </button>
       </div>
+
+      {/* Newly Created Credentials Notice */}
+      {lastCreatedCredentials && (
+        <div className="bg-teal-50/70 border border-teal-200 rounded-xl p-4 sm:p-5 space-y-3">
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <div className="text-xs font-bold text-teal-900">
+                تم إنشاء حساب الدخول العادي بنجاح — يرجى تسليم البيانات للمستفيد
+              </div>
+              <p className="text-[11px] text-teal-800 mt-0.5">
+                {lastCreatedCredentials.displayName} · {lastCreatedCredentials.branchName} · {ROLE_LABEL_AR[lastCreatedCredentials.role]}
+              </p>
+            </div>
+            {onDismissCreatedCredentials && (
+              <button
+                type="button"
+                onClick={onDismissCreatedCredentials}
+                aria-label="إغلاق"
+                className="p-1 rounded-md text-teal-700 hover:bg-teal-100 cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            )}
+          </div>
+
+          <div className="flex flex-wrap items-center justify-between gap-3 bg-white border border-teal-200 rounded-lg px-4 py-2.5">
+            <div className="flex flex-wrap items-center gap-x-6 gap-y-1.5 text-xs">
+              <span>
+                <span className="text-slate-500">اليوزر: </span>
+                <strong className="font-mono-num text-slate-900" dir="ltr">
+                  {lastCreatedCredentials.username}
+                </strong>
+              </span>
+              <span>
+                <span className="text-slate-500">كلمة المرور: </span>
+                <strong className="font-mono-num text-slate-900" dir="ltr">
+                  {lastCreatedCredentials.password}
+                </strong>
+              </span>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => void handleCopyCredentials()}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-teal-700 text-white text-xs font-semibold hover:bg-teal-800 transition-colors whitespace-nowrap shrink-0 cursor-pointer"
+            >
+              {copiedCreds ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+              <span>{copiedCreds ? 'تم النسخ' : 'نسخ بيانات الدخول'}</span>
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Summary Strip */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
@@ -224,8 +308,16 @@ export function AccountsView({
                         <div className="text-xs font-semibold text-slate-900">
                           {acc.displayName}
                         </div>
-                        <div className="text-[11px] font-mono-num text-slate-500 mt-0.5">
-                          {acc.email}
+                        <div className="text-[11px] text-slate-500 mt-0.5 flex flex-wrap items-center gap-1.5">
+                          <span className="font-mono-num text-slate-700" dir="ltr">
+                            {formatAccountLoginIdentifier(acc)}
+                          </span>
+                          <span aria-hidden="true">·</span>
+                          <span>
+                            {acc.authType === 'credentials'
+                              ? 'دخول عادي (يوزر)'
+                              : 'حساب Google'}
+                          </span>
                         </div>
                       </td>
                       <td className="px-4 py-3 text-xs text-slate-700">

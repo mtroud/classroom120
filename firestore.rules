@@ -24,31 +24,57 @@ service cloud.firestore {
       return request.auth != null;
     }
 
-    function isVerified() {
-      return isSignedIn() && request.auth.token.email_verified == true;
+    function isPasswordProvider() {
+      return isSignedIn() &&
+        request.auth.token.firebase != null &&
+        request.auth.token.firebase.sign_in_provider == 'password';
     }
 
-    function hasVerifiedEmail() {
-      return isVerified() &&
+    function isGoogleVerifiedEmail() {
+      return isSignedIn() &&
+        request.auth.token.email_verified == true &&
+        request.auth.token.email is string &&
+        request.auth.token.email.size() >= 3 &&
+        request.auth.token.email.size() <= 160;
+    }
+
+    function hasAccountEmailToken() {
+      return isSignedIn() &&
         request.auth.token.email is string &&
         request.auth.token.email.size() >= 3 &&
         request.auth.token.email.size() <= 160;
     }
 
     function isBootstrappedAdmin() {
-      return isVerified() && request.auth.token.email == 'control.mogma@gmail.com';
+      return isGoogleVerifiedEmail() && request.auth.token.email == 'control.mogma@gmail.com';
     }
 
     function accountDocId() {
       return request.auth.token.email.lower().replace('[^a-zA-Z0-9_\\-]', '_');
     }
 
-    function hasAccountDoc() {
-      return hasVerifiedEmail() && exists(/databases/$(database)/documents/accounts/$(accountDocId()));
+    function hasVerifiedGoogleAccount() {
+      return isGoogleVerifiedEmail() && exists(/databases/$(database)/documents/accounts/$(accountDocId()));
     }
 
     function myAccount() {
       return get(/databases/$(database)/documents/accounts/$(accountDocId())).data;
+    }
+
+    function hasProvisionedPasswordAccount() {
+      return isPasswordProvider() &&
+        hasAccountEmailToken() &&
+        exists(/databases/$(database)/documents/accounts/$(accountDocId())) &&
+        myAccount().authType == 'credentials' &&
+        myAccount().authUid == request.auth.uid;
+    }
+
+    function hasAccountDoc() {
+      return hasVerifiedGoogleAccount() || hasProvisionedPasswordAccount();
+    }
+
+    function isVerified() {
+      return isGoogleVerifiedEmail() || (hasProvisionedPasswordAccount() && myAccount().status == 'active');
     }
 
     function isSuspendedAccount() {
@@ -61,7 +87,7 @@ service cloud.firestore {
 
     function isAdmin() {
       return isBootstrappedAdmin() ||
-        (isVerified() && exists(/databases/$(database)/documents/admins/$(request.auth.uid))) ||
+        (isGoogleVerifiedEmail() && exists(/databases/$(database)/documents/admins/$(request.auth.uid))) ||
         (hasAccountDoc() && myAccount().status == 'active' && myAccount().role == 'admin');
     }
 
@@ -204,11 +230,15 @@ service cloud.firestore {
         'status', 'permissions', 'notes', 'createdBy', 'createdAt', 'updatedAt'
       ]) &&
       data.keys().hasOnly([
-        'id', 'email', 'displayName', 'branchName', 'role',
+        'id', 'email', 'username', 'authType', 'authUid',
+        'displayName', 'branchName', 'role',
         'status', 'permissions', 'notes', 'createdBy', 'createdAt', 'updatedAt'
       ]) &&
       isValidId(data.id) &&
       data.email is string && data.email.size() >= 3 && data.email.size() <= 160 &&
+      (!('username' in data) || (data.username is string && data.username.size() <= 64)) &&
+      (!('authType' in data) || data.authType in ['google', 'credentials']) &&
+      (!('authUid' in data) || (data.authUid is string && data.authUid.size() <= 128)) &&
       data.displayName is string && data.displayName.size() >= 2 && data.displayName.size() <= 80 &&
       data.branchName is string && data.branchName.size() >= 1 && data.branchName.size() <= 80 &&
       data.role in ['admin', 'branch_supervisor', 'coordinator', 'viewer'] &&
@@ -461,8 +491,24 @@ service cloud.firestore {
 
     // --- Collection: Branch & Staff Accounts ---
     match /accounts/{accountId} {
-      allow get: if hasVerifiedEmail() && isValidId(accountId) && (accountId == accountDocId() || isAdmin());
-      allow list: if hasVerifiedEmail() && (isBootstrappedAdmin() || resource.data.email == request.auth.token.email.lower());
+      allow get: if isSignedIn() && isValidId(accountId) && (
+        isBootstrappedAdmin() ||
+        isAdmin() ||
+        (isGoogleVerifiedEmail() && accountId == accountDocId()) ||
+        (isPasswordProvider() &&
+          hasAccountEmailToken() &&
+          accountId == accountDocId() &&
+          existing().authType == 'credentials' &&
+          existing().authUid == request.auth.uid)
+      );
+      allow list: if isSignedIn() && (
+        isBootstrappedAdmin() ||
+        (isGoogleVerifiedEmail() && resource.data.email == request.auth.token.email.lower()) ||
+        (isPasswordProvider() &&
+          hasAccountEmailToken() &&
+          resource.data.email == request.auth.token.email.lower() &&
+          resource.data.authUid == request.auth.uid)
+      );
 
       allow create: if isVerified() &&
         isValidId(accountId) &&
@@ -482,7 +528,8 @@ service cloud.firestore {
         incoming().updatedAt == request.time &&
         isAdmin() &&
         incoming().diff(existing()).affectedKeys().hasOnly([
-          'email', 'displayName', 'branchName', 'role', 'status', 'permissions', 'notes', 'updatedAt'
+          'email', 'username', 'authType', 'authUid', 'displayName', 'branchName',
+          'role', 'status', 'permissions', 'notes', 'updatedAt'
         ]);
 
       allow delete: if isVerified() && isValidId(accountId) && isAdmin();
@@ -527,7 +574,7 @@ service cloud.firestore {
         existing().actorUid == request.auth.uid ||
         existing().entityType in ['booking', 'classroom', 'department']
       );
-      allow list: if isVerified() && (
+      allow list: if (isGoogleVerifiedEmail() || (isPasswordProvider() && hasAccountEmailToken())) && (
         isBootstrappedAdmin() ||
         resource.data.actorUid == request.auth.uid ||
         resource.data.entityType in ['booking', 'classroom', 'department']

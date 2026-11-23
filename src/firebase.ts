@@ -1,5 +1,13 @@
-import { initializeApp } from 'firebase/app';
-import { getAuth, GoogleAuthProvider, signInWithPopup, signOut } from 'firebase/auth';
+import { getApps, initializeApp } from 'firebase/app';
+import {
+  GoogleAuthProvider,
+  createUserWithEmailAndPassword,
+  getAuth,
+  signInWithEmailAndPassword,
+  signInWithPopup,
+  signOut,
+  updateProfile,
+} from 'firebase/auth';
 import { doc, getDocFromServer, getFirestore } from 'firebase/firestore';
 import firebaseConfig from '../firebase-applet-config.json';
 
@@ -75,6 +83,86 @@ void testConnection();
 
 export async function signInWithGoogle() {
   return signInWithPopup(auth, googleProvider);
+}
+
+export async function signInWithCredentials(email: string, password: string) {
+  return signInWithEmailAndPassword(auth, email, password);
+}
+
+export async function provisionCredentialsUser(params: {
+  email: string;
+  password: string;
+  displayName: string;
+}): Promise<string> {
+  const secondaryAppName = 'account-provisioner';
+  const existingSecondary = getApps().find((item) => item.name === secondaryAppName);
+  const secondaryApp =
+    existingSecondary || initializeApp(firebaseConfig, secondaryAppName);
+  const secondaryAuth = getAuth(secondaryApp);
+
+  try {
+    const credential = await createUserWithEmailAndPassword(
+      secondaryAuth,
+      params.email,
+      params.password
+    );
+    if (params.displayName.trim()) {
+      await updateProfile(credential.user, {
+        displayName: params.displayName.trim(),
+      });
+    }
+    const createdUid = credential.user.uid;
+    await signOut(secondaryAuth);
+    return createdUid;
+  } catch (err) {
+    try {
+      await signOut(secondaryAuth);
+    } catch {
+      // Ignore cleanup error on failed creation
+    }
+    throw err;
+  }
+}
+
+export function formatAuthErrorAr(err: unknown): string {
+  const code =
+    typeof err === 'object' && err !== null && 'code' in err
+      ? String((err as { code?: unknown }).code || '')
+      : '';
+  const msg = err instanceof Error ? err.message : String(err || '');
+
+  if (
+    code === 'auth/invalid-credential' ||
+    code === 'auth/wrong-password' ||
+    code === 'auth/user-not-found' ||
+    msg.includes('invalid-credential') ||
+    msg.includes('wrong-password') ||
+    msg.includes('user-not-found')
+  ) {
+    return 'اسم المستخدم (اليوزر) أو كلمة المرور غير صحيحة.';
+  }
+  if (code === 'auth/invalid-email' || msg.includes('invalid-email')) {
+    return 'صيغة اسم المستخدم أو البريد الإلكتروني غير صالحة.';
+  }
+  if (code === 'auth/user-disabled' || msg.includes('user-disabled')) {
+    return 'تم تعطيل هذا الحساب. يرجى مراجعة إدارة المنظومة.';
+  }
+  if (code === 'auth/too-many-requests' || msg.includes('too-many-requests')) {
+    return 'تم تجاوز عدد محاولات الدخول المسموحة مؤقتاً. يرجى الانتظار قليلاً ثم المحاولة مرة أخرى.';
+  }
+  if (code === 'auth/email-already-in-use' || msg.includes('email-already-in-use')) {
+    return 'اسم المستخدم (اليوزر) أو البريد مستخدم مسبقاً. يرجى اختيار اسم مستخدم آخر.';
+  }
+  if (code === 'auth/weak-password' || msg.includes('weak-password')) {
+    return 'كلمة المرور ضعيفة، يجب أن لا تقل عن 6 أحرف.';
+  }
+  if (code === 'auth/operation-not-allowed' || msg.includes('operation-not-allowed')) {
+    return 'تسجيل الدخول العادي (Email/Password) غير مفعّل بعد في لوحة Firebase. يرجى تفعيله من Authentication -> Sign-in method.';
+  }
+  if (code === 'auth/popup-closed-by-user' || msg.includes('popup-closed-by-user')) {
+    return 'تم إغلاق نافذة تسجيل الدخول بحساب Google قبل الإتمام.';
+  }
+  return msg ? `تعذر إتمام العملية: ${msg}` : 'حدث خطأ غير متوقع أثناء المصادقة.';
 }
 
 export async function signOutUser() {
