@@ -328,12 +328,10 @@ export function AccountsView({
   const summarizePermissions = (acc: AccountRecord): string => {
     if (acc.role === 'admin') return 'صلاحية إدارة شاملة';
     if (acc.role === 'viewer') {
-      return acc.permissions.viewReports
-        ? 'اطلاع على الجدول · التقارير'
-        : 'اطلاع على جدول الدورات فقط';
+      return 'اطلاع على الجدول الدراسي فقط';
     }
     if (acc.role === 'coordinator') {
-      return 'رفع طلبات حجز · متابعة طلباته';
+      return 'حجز القاعات لقسمه فقط · متابعة طلبات القسم';
     }
     const active = PERMISSION_ITEMS.filter((p) => acc.permissions[p.key]).map(
       (p) => p.label

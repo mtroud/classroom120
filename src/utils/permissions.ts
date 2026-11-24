@@ -151,7 +151,7 @@ export function defaultPermissionsForRole(role: UserRole): AccountPermissions {
     manageBookings: false,
     manageClassrooms: false,
     manageDepartments: false,
-    viewReports: true,
+    viewReports: false,
     manageSettings: false,
   };
 }
@@ -193,6 +193,9 @@ export interface EffectiveAccess {
   canManageBookings: boolean;
   canManageClassrooms: boolean;
   canManageDepartments: boolean;
+  canViewBookingsTab: boolean;
+  canViewClassroomsTab: boolean;
+  canViewDepartmentsTab: boolean;
   canViewReports: boolean;
   canViewAuditLog: boolean;
   canManageSettings: boolean;
@@ -231,6 +234,9 @@ export function resolveEffectiveAccess(params: {
       canManageBookings: true,
       canManageClassrooms: true,
       canManageDepartments: true,
+      canViewBookingsTab: true,
+      canViewClassroomsTab: true,
+      canViewDepartmentsTab: true,
       canViewReports: true,
       canViewAuditLog: true,
       canManageSettings: true,
@@ -253,6 +259,9 @@ export function resolveEffectiveAccess(params: {
         canManageBookings: false,
         canManageClassrooms: false,
         canManageDepartments: false,
+        canViewBookingsTab: false,
+        canViewClassroomsTab: false,
+        canViewDepartmentsTab: false,
         canViewReports: false,
         canViewAuditLog: false,
         canManageSettings: false,
@@ -273,6 +282,9 @@ export function resolveEffectiveAccess(params: {
         canManageBookings: true,
         canManageClassrooms: true,
         canManageDepartments: true,
+        canViewBookingsTab: true,
+        canViewClassroomsTab: true,
+        canViewDepartmentsTab: true,
         canViewReports: true,
         canViewAuditLog: true,
         canManageSettings: true,
@@ -294,6 +306,9 @@ export function resolveEffectiveAccess(params: {
         canManageBookings: Boolean(p.manageBookings || p.approveBookings),
         canManageClassrooms: Boolean(p.manageClassrooms),
         canManageDepartments: Boolean(p.manageDepartments),
+        canViewBookingsTab: true,
+        canViewClassroomsTab: true,
+        canViewDepartmentsTab: true,
         canViewReports: Boolean(p.viewReports),
         canViewAuditLog: Boolean(
           p.approveBookings ||
@@ -321,8 +336,11 @@ export function resolveEffectiveAccess(params: {
         canManageBookings: false,
         canManageClassrooms: false,
         canManageDepartments: false,
-        canViewReports: Boolean(account.permissions.viewReports),
-        canViewAuditLog: Boolean(account.permissions.viewReports),
+        canViewBookingsTab: false,
+        canViewClassroomsTab: false,
+        canViewDepartmentsTab: false,
+        canViewReports: false,
+        canViewAuditLog: false,
         canManageSettings: false,
         canManageAccounts: false,
         branchName: account.branchName,
@@ -340,8 +358,11 @@ export function resolveEffectiveAccess(params: {
       canManageBookings: false,
       canManageClassrooms: false,
       canManageDepartments: false,
-      canViewReports: Boolean(account.permissions.viewReports),
-      canViewAuditLog: Boolean(account.permissions.viewReports),
+      canViewBookingsTab: true,
+      canViewClassroomsTab: false,
+      canViewDepartmentsTab: false,
+      canViewReports: false,
+      canViewAuditLog: false,
       canManageSettings: false,
       canManageAccounts: false,
       branchName: account.branchName,
@@ -360,6 +381,9 @@ export function resolveEffectiveAccess(params: {
       canManageBookings: true,
       canManageClassrooms: true,
       canManageDepartments: true,
+      canViewBookingsTab: true,
+      canViewClassroomsTab: true,
+      canViewDepartmentsTab: true,
       canViewReports: true,
       canViewAuditLog: true,
       canManageSettings: true,
@@ -380,8 +404,11 @@ export function resolveEffectiveAccess(params: {
     canManageBookings: false,
     canManageClassrooms: false,
     canManageDepartments: false,
-    canViewReports: !blockedByCredentials && !settings.strictAccountAccess,
-    canViewAuditLog: !blockedByCredentials && !settings.strictAccountAccess,
+    canViewBookingsTab: !blockedByCredentials && !settings.strictAccountAccess,
+    canViewClassroomsTab: false,
+    canViewDepartmentsTab: false,
+    canViewReports: false,
+    canViewAuditLog: false,
     canManageSettings: false,
     canManageAccounts: false,
     branchName: settings.organizationName,

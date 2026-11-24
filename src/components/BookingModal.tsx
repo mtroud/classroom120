@@ -1,5 +1,5 @@
-import React, { useEffect, useMemo, useState } from 'react';
-import { AlertCircle, Users, X } from 'lucide-react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { AlertCircle, Building2, CheckCircle2, Clock, Users, Wrench, X } from 'lucide-react';
 import { ATABA_DEPARTMENTS } from '../data/seedData';
 import {
   BLUEPRINT_LIMITS,
@@ -74,23 +74,31 @@ export function BookingModal({
   const [selectedDeptOption, setSelectedDeptOption] = useState<string>('');
   const [saving, setSaving] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const formBodyRef = useRef<HTMLDivElement | null>(null);
+
+  const lockedDepartment = coordinatorDepartment?.trim() || '';
 
   useEffect(() => {
-    setForm(initialDraft);
-    const dept = initialDraft.department.trim();
-    if (!dept) {
-      const firstDept = availableDepartments[0] || '';
-      setSelectedDeptOption(firstDept || '__other__');
-      if (firstDept) {
-        setForm((prev) => ({ ...prev, department: firstDept }));
-      }
-    } else if (availableDepartments.includes(dept)) {
-      setSelectedDeptOption(dept);
+    const resolvedDept = lockedDepartment || initialDraft.department.trim();
+    if (lockedDepartment) {
+      setForm({ ...initialDraft, department: lockedDepartment });
+      setSelectedDeptOption(lockedDepartment);
     } else {
-      setSelectedDeptOption('__other__');
+      setForm(initialDraft);
+      if (!resolvedDept) {
+        const firstDept = availableDepartments[0] || '';
+        setSelectedDeptOption(firstDept || '__other__');
+        if (firstDept) {
+          setForm((prev) => ({ ...prev, department: firstDept }));
+        }
+      } else if (availableDepartments.includes(resolvedDept)) {
+        setSelectedDeptOption(resolvedDept);
+      } else {
+        setSelectedDeptOption('__other__');
+      }
     }
     setErrorMsg(null);
-  }, [initialDraft, isOpen, availableDepartments]);
+  }, [initialDraft, isOpen, availableDepartments, lockedDepartment]);
 
   const selectedRoom = useMemo(
     () => classrooms.find((r) => r.id === form.roomId),
@@ -110,6 +118,43 @@ export function BookingModal({
     });
   }, [existingBookings, form]);
 
+  const roomConflictMap = useMemo(() => {
+    const map = new Map<string, Booking[]>();
+    if (!form.date || !form.startTime || !form.endTime) return map;
+    if (timeToMinutes(form.startTime) >= timeToMinutes(form.endTime)) return map;
+    for (const room of classrooms) {
+      const list = findBookingConflicts(existingBookings, {
+        id: form.id,
+        roomId: room.id,
+        date: form.date,
+        startTime: form.startTime,
+        endTime: form.endTime,
+      });
+      if (list.length > 0) {
+        map.set(room.id, list);
+      }
+    }
+    return map;
+  }, [classrooms, existingBookings, form.date, form.endTime, form.id, form.startTime]);
+
+  const selectedRoomDayBookings = useMemo(() => {
+    if (!form.roomId || !form.date) return [];
+    return existingBookings
+      .filter(
+        (b) =>
+          b.roomId === form.roomId &&
+          b.date === form.date &&
+          b.id !== form.id &&
+          isActiveBooking(b)
+      )
+      .sort((a, b) => timeToMinutes(a.startTime) - timeToMinutes(b.startTime));
+  }, [existingBookings, form.date, form.id, form.roomId]);
+
+  const validEndTimeOptions = useMemo(() => {
+    const startMins = timeToMinutes(form.startTime || '08:00');
+    return TIME_OPTIONS.filter((t) => timeToMinutes(t) > startMins);
+  }, [form.startTime]);
+
   const capacityExceeded =
     selectedRoom !== undefined && form.attendeesCount > selectedRoom.capacity;
 
@@ -119,6 +164,21 @@ export function BookingModal({
     if (!form.startTime || !form.endTime) return 0;
     return timeToMinutes(form.endTime) - timeToMinutes(form.startTime);
   }, [form.startTime, form.endTime]);
+
+  const handleStartTimeChange = (nextStart: string) => {
+    const nextStartMins = timeToMinutes(nextStart);
+    const currentEndMins = timeToMinutes(form.endTime);
+    if (currentEndMins <= nextStartMins) {
+      const maxEndMins = timeToMinutes(TIME_OPTIONS[TIME_OPTIONS.length - 1]);
+      const targetMins = Math.min(nextStartMins + 60, maxEndMins);
+      const nextEnd =
+        TIME_OPTIONS.find((opt) => timeToMinutes(opt) === targetMins) ||
+        TIME_OPTIONS[TIME_OPTIONS.length - 1];
+      setForm((prev) => ({ ...prev, startTime: nextStart, endTime: nextEnd }));
+    } else {
+      setForm((prev) => ({ ...prev, startTime: nextStart }));
+    }
+  };
 
   const applyDurationMinutes = (durationMinutes: number) => {
     const startMins = timeToMinutes(form.startTime || '09:00');
@@ -132,34 +192,69 @@ export function BookingModal({
     }
   };
 
+  const handleSelectHourSlot = (hourStart: string) => {
+    const startMins = timeToMinutes(hourStart);
+    const maxEndMins = timeToMinutes(TIME_OPTIONS[TIME_OPTIONS.length - 1]);
+    const twoHourEndMins = Math.min(startMins + 120, maxEndMins);
+    const oneHourEndMins = Math.min(startMins + 60, maxEndMins);
+    const twoHourEnd =
+      TIME_OPTIONS.find((opt) => timeToMinutes(opt) === twoHourEndMins) ||
+      TIME_OPTIONS[TIME_OPTIONS.length - 1];
+    const oneHourEnd =
+      TIME_OPTIONS.find((opt) => timeToMinutes(opt) === oneHourEndMins) ||
+      TIME_OPTIONS[TIME_OPTIONS.length - 1];
+
+    const twoHourFree =
+      findBookingConflicts(existingBookings, {
+        id: form.id,
+        roomId: form.roomId,
+        date: form.date,
+        startTime: hourStart,
+        endTime: twoHourEnd,
+      }).length === 0;
+
+    setForm((prev) => ({
+      ...prev,
+      startTime: hourStart,
+      endTime: twoHourFree ? twoHourEnd : oneHourEnd,
+    }));
+  };
+
   if (!isOpen) return null;
+
+  const showValidationError = (msg: string) => {
+    setErrorMsg(msg);
+    formBodyRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMsg(null);
 
+    const effectiveDepartment = (lockedDepartment || form.department).trim();
+
     if (!form.roomId) {
-      setErrorMsg('يرجى اختيار القاعة الدراسية.');
+      showValidationError('يرجى اختيار القاعة الدراسية.');
       return;
     }
     if (isMaintenanceRoom && isActiveBooking({ status: form.status })) {
-      setErrorMsg('هذه القاعة قيد الصيانة حالياً ولا يمكن حجزها.');
+      showValidationError('هذه القاعة قيد الصيانة حالياً ولا يمكن حجزها.');
       return;
     }
     if (form.courseTitle.trim().length < 2) {
-      setErrorMsg('يرجى إدخال عنوان المحاضرة أو النشاط (حرفين على الأقل).');
+      showValidationError('يرجى إدخال عنوان المحاضرة أو النشاط (حرفين على الأقل).');
       return;
     }
     if (form.instructorName.trim().length < 2) {
-      setErrorMsg('يرجى إدخال اسم الأستاذ أو المحاضر.');
+      showValidationError('يرجى إدخال اسم الأستاذ أو المحاضر.');
       return;
     }
-    if (form.department.trim().length < 2) {
-      setErrorMsg('يرجى تحديد القسم أو الشعبة التابعة للعتبة الحسينية المقدسة.');
+    if (effectiveDepartment.length < 2) {
+      showValidationError('يرجى تحديد القسم أو الشعبة التابعة للعتبة الحسينية المقدسة.');
       return;
     }
     if (!BLUEPRINT_LIMITS.DATE_PATTERN.test(form.date)) {
-      setErrorMsg('صيغة التاريخ غير صالحة.');
+      showValidationError('صيغة التاريخ غير صالحة.');
       return;
     }
     const [yr, mo, dy] = form.date.split('-').map(Number);
@@ -167,7 +262,7 @@ export function BookingModal({
     if (!allowWeekendBookings && !isAdmin) {
       const dow = chosenDate.getDay();
       if (dow === 5 || dow === 6) {
-        setErrorMsg('إعدادات المجمع الحالية لا تسمح بالحجز أيام العطلة الأسبوعية (الجمعة والسبت).');
+        showValidationError('إعدادات المجمع الحالية لا تسمح بالحجز أيام العطلة الأسبوعية (الجمعة والسبت).');
         return;
       }
     }
@@ -178,20 +273,23 @@ export function BookingModal({
         (chosenDate.getTime() - todayMidnight.getTime()) / (1000 * 60 * 60 * 24)
       );
       if (diffDays > maxAdvanceDays) {
-        setErrorMsg(`الحد الأقصى المسموح للحجز المسبق هو ${maxAdvanceDays} يوماً.`);
+        showValidationError(`الحد الأقصى المسموح للحجز المسبق هو ${maxAdvanceDays} يوماً.`);
         return;
       }
     }
     if (timeToMinutes(form.startTime) >= timeToMinutes(form.endTime)) {
-      setErrorMsg('يجب أن يكون وقت الانتهاء بعد وقت البدء.');
+      showValidationError('يجب أن يكون وقت الانتهاء بعد وقت البدء.');
       return;
     }
     if (conflicts.length > 0) {
-      setErrorMsg('يوجد تعارض زمني مع حجز آخر في نفس القاعة. يرجى اختيار وقت آخر.');
+      const firstConflict = conflicts[0];
+      showValidationError(
+        `يوجد تعارض زمني في نفس الوقت: القاعة «${selectedRoom?.name || ''}» محجوزة بالفعل من ${formatTime12Ar(firstConflict.startTime)} إلى ${formatTime12Ar(firstConflict.endTime)}. يرجى اختيار وقت آخر متاح أو قاعة أخرى.`
+      );
       return;
     }
     if (form.attendeesCount < 1 || form.attendeesCount > BLUEPRINT_LIMITS.CAPACITY_MAX) {
-      setErrorMsg('يرجى إدخال عدد طلاب صحيح.');
+      showValidationError('يرجى إدخال عدد طلاب صحيح.');
       return;
     }
 
@@ -201,12 +299,12 @@ export function BookingModal({
         ...form,
         courseTitle: form.courseTitle.trim().slice(0, BLUEPRINT_LIMITS.COURSE_TITLE_MAX),
         instructorName: form.instructorName.trim().slice(0, BLUEPRINT_LIMITS.INSTRUCTOR_MAX),
-        department: form.department.trim().slice(0, BLUEPRINT_LIMITS.DEPARTMENT_MAX),
+        department: effectiveDepartment.slice(0, BLUEPRINT_LIMITS.DEPARTMENT_MAX),
         notes: form.notes.trim().slice(0, BLUEPRINT_LIMITS.NOTES_MAX),
       });
       onClose();
     } catch (err) {
-      setErrorMsg(err instanceof Error ? err.message : 'تعذر حفظ الحجز. يرجى المحاولة مجدداً.');
+      showValidationError(err instanceof Error ? err.message : 'تعذر حفظ الحجز. يرجى المحاولة مجدداً.');
     } finally {
       setSaving(false);
     }
@@ -219,16 +317,19 @@ export function BookingModal({
       aria-modal="true"
       aria-labelledby="booking-modal-title"
     >
-      <div className="bg-white border border-slate-200 rounded-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+      <div
+        ref={formBodyRef}
+        className="bg-white border border-slate-200 rounded-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto"
+      >
         <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200">
           <div>
             <h2 id="booking-modal-title" className="font-display text-lg font-bold text-slate-900">
-              {form.id ? 'تعديل طلب الحجز' : 'طلب حجز قاعة لأقسام العتبة الحسينية المقدسة'}
+              {form.id ? 'تعديل طلب الحجز' : 'حجز قاعة دراسية'}
             </h2>
             <p className="text-xs text-slate-500 mt-0.5">
               {isAdmin
                 ? 'صلاحية الإدارة: يمكنك الموافقة الفورية على الحجز أو إبقائه قيد المراجعة'
-                : 'يخضع الطلب لمراجعة وموافقة إدارة قسم مجمع سيد الشهداء (ع) الخدمي قبل التثبيت'}
+                : 'اختر القاعة والتاريخ والوقت المتاح لإرسال طلب الحجز لموافقة الإدارة'}
             </p>
           </div>
           <button
@@ -250,22 +351,28 @@ export function BookingModal({
           )}
 
           {conflicts.length > 0 && (
-            <div className="bg-amber-50 border border-amber-200 rounded-lg px-4 py-3 text-sm text-amber-900 space-y-1">
-              <div className="font-semibold flex items-center gap-2">
+            <div className="bg-amber-50 border border-amber-300 rounded-lg px-4 py-3 text-sm text-amber-950 space-y-1">
+              <div className="font-bold flex items-center gap-2 text-amber-900">
                 <AlertCircle className="w-4 h-4 text-amber-700 shrink-0" />
-                <span>تعارض زمني مكتشف في هذه القاعة</span>
+                <span>تنبيه تعارض: هذه القاعة محجوزة في نفس الوقت المحدد</span>
               </div>
               {conflicts.map((c) => (
-                <div key={c.id} className="text-xs text-amber-800 pr-6">
-                  {c.courseTitle} ({formatTime12Ar(c.startTime)} – {formatTime12Ar(c.endTime)} · {c.instructorName})
+                <div key={c.id} className="text-xs text-amber-900 pr-6 font-mono-num">
+                  محجوزة من {formatTime12Ar(c.startTime)} إلى {formatTime12Ar(c.endTime)} — {c.courseTitle}
                 </div>
               ))}
+              <div className="text-[11px] text-amber-800 pr-6">
+                يرجى اختيار وقت آخر متاح من الجدول الزمني أدناه أو اختيار قاعة أخرى.
+              </div>
             </div>
           )}
 
-          {!form.id && coordinatorDepartment && (
-            <div className="bg-teal-50/70 border border-teal-200 rounded-lg px-4 py-2.5 text-xs text-teal-900">
-              تم تحديد قسمك (<strong className="font-semibold">{coordinatorDepartment}</strong>) تلقائياً للحجز السريع — اختر القاعة والتاريخ والوقت وأرسل الطلب.
+          {lockedDepartment && (
+            <div className="bg-teal-50/70 border border-teal-200 rounded-lg px-4 py-2.5 text-xs text-teal-900 flex items-center gap-2">
+              <Building2 className="w-4 h-4 text-teal-700 shrink-0" />
+              <span>
+                الحجز مخصص لقسمك فقط: <strong className="font-semibold">{lockedDepartment}</strong>
+              </span>
             </div>
           )}
 
@@ -276,23 +383,94 @@ export function BookingModal({
           )}
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div className="sm:col-span-2">
-              <label className="block text-xs font-medium text-slate-700 mb-1.5">
-                القاعة الدراسية
-              </label>
+            {/* Classroom Selection Cards + Dropdown */}
+            <div className="sm:col-span-2 space-y-2">
+              <div className="flex items-center justify-between gap-2">
+                <label className="block text-xs font-medium text-slate-700">
+                  القاعات المتاحة للحجز ({classrooms.length})
+                </label>
+                <span className="text-[11px] text-slate-500">
+                  اضغط على القاعة لاختيارها أو استعرض حالتها للوقت المحدد
+                </span>
+              </div>
+
+              {classrooms.length > 0 && (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-44 overflow-y-auto p-0.5">
+                  {classrooms.map((room) => {
+                    const isSelected = form.roomId === room.id;
+                    const isMaint = room.status === 'maintenance';
+                    const roomConflicts = roomConflictMap.get(room.id) || [];
+                    const hasRoomConflict = roomConflicts.length > 0;
+                    return (
+                      <button
+                        key={room.id}
+                        type="button"
+                        onClick={() => setForm({ ...form, roomId: room.id })}
+                        className={`text-right rounded-lg border px-3 py-2.5 transition-colors cursor-pointer ${
+                          isSelected
+                            ? hasRoomConflict
+                              ? 'border-amber-500 bg-amber-50/80'
+                              : 'border-teal-700 bg-teal-50/60'
+                            : 'border-slate-200 bg-white hover:bg-slate-50'
+                        }`}
+                      >
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="text-xs font-bold text-slate-900 truncate">
+                            {room.name}
+                          </span>
+                          <span className="font-mono-num text-[11px] text-slate-500 shrink-0">
+                            {room.code}
+                          </span>
+                        </div>
+                        <div className="mt-1 flex items-center justify-between gap-2 text-[11px]">
+                          <span className="text-slate-500 font-mono-num">
+                            {room.capacity} مقعد · {room.floor}
+                          </span>
+                          {isMaint ? (
+                            <span className="inline-flex items-center gap-1 text-red-700 font-medium shrink-0">
+                              <Wrench className="w-3 h-3" />
+                              صيانة
+                            </span>
+                          ) : hasRoomConflict ? (
+                            <span className="inline-flex items-center gap-1 text-amber-800 font-semibold shrink-0">
+                              <AlertCircle className="w-3 h-3" />
+                              متعارض بالوقت
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1 text-emerald-700 font-medium shrink-0">
+                              <CheckCircle2 className="w-3 h-3" />
+                              متاحة
+                            </span>
+                          )}
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+
               <select
                 value={form.roomId}
                 onChange={(e) => setForm({ ...form, roomId: e.target.value })}
-                className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 focus:outline-none focus:border-teal-700"
+                aria-label="اختيار القاعة الدراسية"
+                className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs text-slate-800 focus:outline-none focus:border-teal-700"
                 required
               >
                 <option value="">اختر القاعة...</option>
-                {classrooms.map((room) => (
-                  <option key={room.id} value={room.id}>
-                    {room.name} ({room.code} · سعة {room.capacity} طالب
-                    {room.status === 'maintenance' ? ' · قيد الصيانة' : ''})
-                  </option>
-                ))}
+                {classrooms.map((room) => {
+                  const hasRoomConflict = (roomConflictMap.get(room.id) || []).length > 0;
+                  return (
+                    <option key={room.id} value={room.id}>
+                      {room.name} ({room.code} · سعة {room.capacity} طالب
+                      {room.status === 'maintenance'
+                        ? ' · قيد الصيانة'
+                        : hasRoomConflict
+                          ? ' · يوجد تعارض في هذا الوقت'
+                          : ' · متاحة'}
+                      )
+                    </option>
+                  );
+                })}
               </select>
             </div>
 
@@ -328,39 +506,49 @@ export function BookingModal({
 
             <div>
               <label className="block text-xs font-medium text-slate-700 mb-1.5">
-                القسم الطالب (أقسام العتبة الحسينية المقدسة)
+                {lockedDepartment
+                  ? 'القسم الطالب (قسمك فقط)'
+                  : 'القسم الطالب (أقسام العتبة الحسينية المقدسة)'}
               </label>
-              <select
-                value={selectedDeptOption}
-                onChange={(e) => {
-                  const val = e.target.value;
-                  setSelectedDeptOption(val);
-                  if (val !== '__other__') {
-                    setForm({ ...form, department: val });
-                  } else {
-                    setForm({ ...form, department: '' });
-                  }
-                }}
-                className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 focus:outline-none focus:border-teal-700"
-                required
-              >
-                {availableDepartments.map((dept) => (
-                  <option key={dept} value={dept}>
-                    {dept}
-                  </option>
-                ))}
-                <option value="__other__">قسم / شعبة أخرى تابعة للعتبة الحسينية</option>
-              </select>
-              {selectedDeptOption === '__other__' && (
-                <input
-                  type="text"
-                  maxLength={BLUEPRINT_LIMITS.DEPARTMENT_MAX}
-                  value={form.department}
-                  onChange={(e) => setForm({ ...form, department: e.target.value })}
-                  placeholder="اكتب اسم القسم أو الشعبة في العتبة الحسينية المقدسة"
-                  className="mt-2 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 focus:outline-none focus:border-teal-700"
-                  required
-                />
+              {lockedDepartment ? (
+                <div className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm font-semibold text-slate-900">
+                  {lockedDepartment}
+                </div>
+              ) : (
+                <>
+                  <select
+                    value={selectedDeptOption}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      setSelectedDeptOption(val);
+                      if (val !== '__other__') {
+                        setForm({ ...form, department: val });
+                      } else {
+                        setForm({ ...form, department: '' });
+                      }
+                    }}
+                    className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 focus:outline-none focus:border-teal-700"
+                    required
+                  >
+                    {availableDepartments.map((dept) => (
+                      <option key={dept} value={dept}>
+                        {dept}
+                      </option>
+                    ))}
+                    <option value="__other__">قسم / شعبة أخرى تابعة للعتبة الحسينية</option>
+                  </select>
+                  {selectedDeptOption === '__other__' && (
+                    <input
+                      type="text"
+                      maxLength={BLUEPRINT_LIMITS.DEPARTMENT_MAX}
+                      value={form.department}
+                      onChange={(e) => setForm({ ...form, department: e.target.value })}
+                      placeholder="اكتب اسم القسم أو الشعبة في العتبة الحسينية المقدسة"
+                      className="mt-2 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 focus:outline-none focus:border-teal-700"
+                      required
+                    />
+                  )}
+                </>
               )}
             </div>
 
@@ -402,7 +590,7 @@ export function BookingModal({
               </label>
               <select
                 value={form.startTime}
-                onChange={(e) => setForm({ ...form, startTime: e.target.value })}
+                onChange={(e) => handleStartTimeChange(e.target.value)}
                 className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 focus:outline-none focus:border-teal-700"
               >
                 {TIME_OPTIONS.slice(0, -1).map((t) => (
@@ -422,7 +610,7 @@ export function BookingModal({
                 onChange={(e) => setForm({ ...form, endTime: e.target.value })}
                 className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 focus:outline-none focus:border-teal-700"
               >
-                {TIME_OPTIONS.slice(1).map((t) => (
+                {validEndTimeOptions.map((t) => (
                   <option key={t} value={t}>
                     {formatTime12Ar(t)} ({t})
                   </option>
@@ -449,6 +637,82 @@ export function BookingModal({
                 ))}
               </div>
             </div>
+
+            {/* Selected Room Daily Times Strip (Shows available vs booked times) */}
+            {form.roomId && form.date && (
+              <div className="sm:col-span-2 bg-slate-50 border border-slate-200 rounded-lg p-3.5 space-y-2.5">
+                <div className="flex flex-wrap items-center justify-between gap-2 text-xs">
+                  <div className="font-semibold text-slate-800 flex items-center gap-1.5">
+                    <Clock className="w-3.5 h-3.5 text-teal-700" />
+                    <span>
+                      أوقات القاعة في يوم <span className="font-mono-num">{form.date}</span>
+                    </span>
+                  </div>
+                  <span className="text-[11px] text-slate-500">
+                    {selectedRoomDayBookings.length === 0
+                      ? 'جميع الأوقات متاحة في هذا اليوم'
+                      : `يوجد ${selectedRoomDayBookings.length} حجز قائم — اضغط على أي ساعة متاحة لاختيارها`}
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-3 sm:grid-cols-6 gap-1.5">
+                  {TIME_OPTIONS.slice(0, -1)
+                    .filter((h) => h.endsWith(':00'))
+                    .map((hourStr) => {
+                      const slotStart = timeToMinutes(hourStr);
+                      const slotEnd = slotStart + 60;
+                      const busyBooking = selectedRoomDayBookings.find((b) => {
+                        const bStart = timeToMinutes(b.startTime);
+                        const bEnd = timeToMinutes(b.endTime);
+                        return bStart < slotEnd && bEnd > slotStart;
+                      });
+                      const isInChosenRange =
+                        slotStart >= timeToMinutes(form.startTime) &&
+                        slotStart < timeToMinutes(form.endTime);
+
+                      return (
+                        <button
+                          key={hourStr}
+                          type="button"
+                          onClick={() => handleSelectHourSlot(hourStr)}
+                          className={`px-2 py-1.5 rounded-md border text-[11px] font-mono-num text-center transition-colors cursor-pointer ${
+                            busyBooking
+                              ? isInChosenRange
+                                ? 'border-amber-500 bg-amber-100 text-amber-950 font-semibold'
+                                : 'border-red-200 bg-red-50/70 text-red-700'
+                              : isInChosenRange
+                                ? 'border-teal-700 bg-teal-700 text-white font-semibold'
+                                : 'border-slate-200 bg-white text-slate-700 hover:border-teal-400 hover:bg-teal-50/40'
+                          }`}
+                          title={
+                            busyBooking
+                              ? `محجوز (${formatTime12Ar(busyBooking.startTime)} – ${formatTime12Ar(busyBooking.endTime)})`
+                              : `متاح — اختيار البدء من ${formatTime12Ar(hourStr)}`
+                          }
+                        >
+                          <div>{formatTime12Ar(hourStr)}</div>
+                          <div className="text-[10px] opacity-85">
+                            {busyBooking ? 'محجوز' : 'متاح'}
+                          </div>
+                        </button>
+                      );
+                    })}
+                </div>
+
+                {conflicts.length > 0 && (
+                  <div className="bg-amber-100/80 border border-amber-300 rounded-md px-3 py-2 text-xs text-amber-950 flex items-start gap-2">
+                    <AlertCircle className="w-4 h-4 text-amber-800 shrink-0 mt-0.5" />
+                    <div>
+                      <span className="font-bold">تعارض في نفس الوقت: </span>
+                      <span>
+                        الفترة من {formatTime12Ar(form.startTime)} إلى {formatTime12Ar(form.endTime)} تتقاطع مع حجز قائم (
+                        {formatTime12Ar(conflicts[0].startTime)} – {formatTime12Ar(conflicts[0].endTime)}). اختر ساعة «متاح» أعلاه.
+                      </span>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
 
             <div>
               <label className="block text-xs font-medium text-slate-700 mb-1.5">
@@ -526,16 +790,22 @@ export function BookingModal({
             </button>
             <button
               type="submit"
-              disabled={saving || conflicts.length > 0}
-              className="px-5 py-2 rounded-lg bg-teal-700 text-white text-sm font-semibold hover:bg-teal-800 disabled:opacity-50 transition-colors cursor-pointer"
+              disabled={saving}
+              className={`px-5 py-2 rounded-lg text-white text-sm font-semibold disabled:opacity-50 transition-colors cursor-pointer ${
+                conflicts.length > 0
+                  ? 'bg-amber-700 hover:bg-amber-800'
+                  : 'bg-teal-700 hover:bg-teal-800'
+              }`}
             >
               {saving
                 ? 'جاري الإرسال...'
-                : form.id
-                  ? 'حفظ التعديلات'
-                  : isAdmin
-                    ? 'حفظ وتثبيت الحجز'
-                    : 'إرسال طلب الحجز للإدارة'}
+                : conflicts.length > 0
+                  ? 'يوجد تعارض زمني — راجع الوقت'
+                  : form.id
+                    ? 'حفظ التعديلات'
+                    : isAdmin
+                      ? 'حفظ وتثبيت الحجز'
+                      : 'إرسال طلب الحجز للإدارة'}
             </button>
           </div>
         </form>

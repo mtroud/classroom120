@@ -100,6 +100,7 @@ import {
   BOOKING_STATUS_LABEL,
   BOOKING_TYPE_LABEL,
   calculateDurationHours,
+  findBookingConflicts,
   formatArabicDate,
   formatTime12Ar,
   getTodayISO,
@@ -778,13 +779,28 @@ function DashboardWorkspace() {
     }
   };
 
+  const coordinatorVisibleBookings = useMemo(() => {
+    if (!user || access.role !== 'coordinator') return bookings;
+    const myDept = access.branchName.trim();
+    return bookings.filter(
+      (b) => b.department.trim() === myDept || b.creatorId === user.uid
+    );
+  }, [access.branchName, access.role, bookings, user]);
+
   // KPI metrics for selectedDate
   const metrics = useMemo(() => {
     const availableRooms = classrooms.filter((r) => r.status === 'available').length;
     const todayActive = bookings.filter(
       (b) => b.date === selectedDate && isActiveBooking(b)
     );
+    const todayConfirmedCount = todayActive.filter(
+      (b) => b.status === 'confirmed'
+    ).length;
     const pendingCount = bookings.filter((b) => b.status === 'pending').length;
+    const scopedPendingCount =
+      access.role === 'coordinator'
+        ? coordinatorVisibleBookings.filter((b) => b.status === 'pending').length
+        : pendingCount;
     const scheduledHours = todayActive.reduce(
       (sum, b) => sum + calculateDurationHours(b.startTime, b.endTime),
       0
@@ -793,10 +809,18 @@ function DashboardWorkspace() {
       availableRooms,
       totalRooms: classrooms.length,
       todayCount: todayActive.length,
+      todayConfirmedCount,
       pendingCount,
+      scopedPendingCount,
       scheduledHours: Math.round(scheduledHours * 10) / 10,
     };
-  }, [classrooms, bookings, selectedDate]);
+  }, [
+    access.role,
+    bookings,
+    classrooms,
+    coordinatorVisibleBookings,
+    selectedDate,
+  ]);
 
   // Booking CRUD
   const openNewBooking = (
@@ -862,6 +886,35 @@ function DashboardWorkspace() {
       throw new Error('القاعة المحددة غير موجودة.');
     }
 
+    const effectiveDepartment =
+      access.role === 'coordinator' && access.branchName.trim().length >= 2
+        ? access.branchName.trim().slice(0, BLUEPRINT_LIMITS.DEPARTMENT_MAX)
+        : draft.department.trim().slice(0, BLUEPRINT_LIMITS.DEPARTMENT_MAX);
+
+    const effectiveStatus = draft.id
+      ? access.canApproveBookings
+        ? draft.status
+        : 'pending'
+      : access.canApproveBookings
+        ? draft.status
+        : 'pending';
+
+    if (isActiveBooking({ status: effectiveStatus })) {
+      const conflicts = findBookingConflicts(bookings, {
+        id: draft.id,
+        roomId: targetRoom.id,
+        date: draft.date,
+        startTime: draft.startTime,
+        endTime: draft.endTime,
+      });
+      if (conflicts.length > 0) {
+        const firstConflict = conflicts[0];
+        throw new Error(
+          `يوجد تعارض زمني في نفس الوقت: القاعة «${targetRoom.name}» محجوزة بالفعل من ${formatTime12Ar(firstConflict.startTime)} إلى ${formatTime12Ar(firstConflict.endTime)}. يرجى اختيار وقت أو قاعة أخرى.`
+        );
+      }
+    }
+
     if (draft.id) {
       const path = `bookings/${draft.id}`;
       try {
@@ -870,7 +923,7 @@ function DashboardWorkspace() {
           roomName: targetRoom.name.slice(0, BLUEPRINT_LIMITS.ROOM_NAME_MAX),
           courseTitle: draft.courseTitle,
           instructorName: draft.instructorName,
-          department: draft.department,
+          department: effectiveDepartment,
           bookingType: draft.bookingType,
           date: draft.date,
           startTime: draft.startTime,
@@ -888,7 +941,7 @@ function DashboardWorkspace() {
           entityId: draft.id,
           entityLabel: `${targetRoom.name} — ${draft.courseTitle}`,
           action: 'update',
-          summary: `تعديل حجز ${draft.department} (${draft.date} من ${draft.startTime} إلى ${draft.endTime})`,
+          summary: `تعديل حجز ${effectiveDepartment} (${draft.date} من ${draft.startTime} إلى ${draft.endTime})`,
         });
         showToast('تم تحديث الحجز في الجدول الدراسي');
       } catch (err) {
@@ -905,7 +958,7 @@ function DashboardWorkspace() {
           roomName: targetRoom.name.slice(0, BLUEPRINT_LIMITS.ROOM_NAME_MAX),
           courseTitle: draft.courseTitle,
           instructorName: draft.instructorName,
-          department: draft.department,
+          department: effectiveDepartment,
           bookingType: draft.bookingType,
           date: draft.date,
           startTime: draft.startTime,
@@ -914,7 +967,11 @@ function DashboardWorkspace() {
           status: nextStatus,
           notes: draft.notes,
           creatorId: user.uid,
-          creatorName: (user.displayName || 'مستخدم').slice(0, 80),
+          creatorName: (
+            myAccountDoc?.displayName?.trim() ||
+            user.displayName?.trim() ||
+            'مستخدم'
+          ).slice(0, 80),
           createdAt: serverTimestamp(),
           updatedAt: serverTimestamp(),
         });
@@ -923,7 +980,7 @@ function DashboardWorkspace() {
           entityId: newId,
           entityLabel: `${targetRoom.name} — ${draft.courseTitle}`,
           action: 'create',
-          summary: `حجز جديد لقسم ${draft.department} (${draft.date} من ${draft.startTime} إلى ${draft.endTime}) · ${BOOKING_STATUS_LABEL[nextStatus]}`,
+          summary: `حجز جديد لقسم ${effectiveDepartment} (${draft.date} من ${draft.startTime} إلى ${draft.endTime}) · ${BOOKING_STATUS_LABEL[nextStatus]}`,
         });
         showToast(
           access.canApproveBookings
@@ -1974,16 +2031,45 @@ function DashboardWorkspace() {
     );
   }
 
+  const isTabAllowed = useMemo(
+    () => (tab: ViewTab) => {
+      if (tab === 'schedule') return true;
+      if (tab === 'bookings') return access.canViewBookingsTab;
+      if (tab === 'classrooms') return access.canViewClassroomsTab;
+      if (tab === 'departments') return access.canViewDepartmentsTab;
+      if (tab === 'reports') return access.canViewReports;
+      if (tab === 'audit') return access.canViewAuditLog;
+      if (tab === 'accounts') return access.canManageAccounts;
+      if (tab === 'settings') return access.canManageSettings;
+      return false;
+    },
+    [access]
+  );
+
+  useEffect(() => {
+    if (!isTabAllowed(activeTab)) {
+      setActiveTab('schedule');
+    }
+  }, [activeTab, isTabAllowed]);
+
   const navItems: { id: ViewTab; label: string; icon: typeof CalendarDays; badge?: number }[] = [
     { id: 'schedule', label: 'الجدول الدراسي', icon: CalendarDays },
-    {
-      id: 'bookings',
-      label: 'سجل الحجوزات',
-      icon: ClipboardList,
-      badge: metrics.pendingCount > 0 ? metrics.pendingCount : undefined,
-    },
-    { id: 'classrooms', label: 'القاعات المجهزة', icon: Building2 },
-    { id: 'departments', label: 'الأقسام', icon: Layers },
+    ...(access.canViewBookingsTab
+      ? [
+          {
+            id: 'bookings' as ViewTab,
+            label: access.role === 'coordinator' ? 'حجوزات قسمي' : 'سجل الحجوزات',
+            icon: ClipboardList,
+            badge: metrics.scopedPendingCount > 0 ? metrics.scopedPendingCount : undefined,
+          },
+        ]
+      : []),
+    ...(access.canViewClassroomsTab
+      ? [{ id: 'classrooms' as ViewTab, label: 'القاعات المجهزة', icon: Building2 }]
+      : []),
+    ...(access.canViewDepartmentsTab
+      ? [{ id: 'departments' as ViewTab, label: 'الأقسام', icon: Layers }]
+      : []),
     ...(access.canViewReports
       ? [{ id: 'reports' as ViewTab, label: 'التقارير الدورية', icon: FileBarChart2 }]
       : []),
@@ -2164,19 +2250,32 @@ function DashboardWorkspace() {
                 {metrics.todayCount}
               </div>
             </div>
-            <button
-              type="button"
-              onClick={() => {
-                setBookingsStatusFilter('pending');
-                setActiveTab('bookings');
-              }}
-              className="bg-white border border-slate-200 rounded-xl p-4 text-right hover:border-amber-300 transition-colors cursor-pointer"
-            >
-              <div className="text-xs text-slate-500">طلبات بانتظار موافقة الإدارة</div>
-              <div className="font-mono-num text-2xl font-semibold text-amber-700 mt-1">
-                {metrics.pendingCount}
+            {access.canViewBookingsTab ? (
+              <button
+                type="button"
+                onClick={() => {
+                  setBookingsStatusFilter('pending');
+                  setActiveTab('bookings');
+                }}
+                className="bg-white border border-slate-200 rounded-xl p-4 text-right hover:border-amber-300 transition-colors cursor-pointer"
+              >
+                <div className="text-xs text-slate-500">
+                  {access.role === 'coordinator'
+                    ? 'طلبات قسمي المعلقة'
+                    : 'طلبات بانتظار موافقة الإدارة'}
+                </div>
+                <div className="font-mono-num text-2xl font-semibold text-amber-700 mt-1">
+                  {metrics.scopedPendingCount}
+                </div>
+              </button>
+            ) : (
+              <div className="bg-white border border-slate-200 rounded-xl p-4">
+                <div className="text-xs text-slate-500">الحجوزات المؤكدة اليوم</div>
+                <div className="font-mono-num text-2xl font-semibold text-emerald-700 mt-1">
+                  {metrics.todayConfirmedCount}
+                </div>
               </div>
-            </button>
+            )}
             <div className="bg-white border border-slate-200 rounded-xl p-4">
               <div className="text-xs text-slate-500">ساعات الدراسة المجدولة</div>
               <div className="font-mono-num text-2xl font-semibold text-teal-800 mt-1">
@@ -2204,15 +2303,22 @@ function DashboardWorkspace() {
             />
           )}
 
-          {activeTab === 'bookings' && (
+          {activeTab === 'bookings' && access.canViewBookingsTab && (
             <BookingsTableView
-              bookings={bookings}
+              bookings={
+                access.role === 'coordinator'
+                  ? coordinatorVisibleBookings
+                  : bookings
+              }
               classrooms={classrooms}
               currentUserId={user.uid}
               isAdmin={access.canApproveBookings}
               canApprove={access.canApproveBookings}
               canManageAll={access.canManageBookings}
               canCreate={access.canCreateBookings}
+              scopedDepartmentName={
+                access.role === 'coordinator' ? access.branchName : undefined
+              }
               isLoading={loadingBookings}
               statusFilter={bookingsStatusFilter}
               onStatusFilterChange={setBookingsStatusFilter}
@@ -2225,7 +2331,7 @@ function DashboardWorkspace() {
             />
           )}
 
-          {activeTab === 'classrooms' && (
+          {activeTab === 'classrooms' && access.canViewClassroomsTab && (
             <ClassroomsView
               classrooms={classrooms}
               bookings={bookings}
@@ -2244,7 +2350,7 @@ function DashboardWorkspace() {
             />
           )}
 
-          {activeTab === 'departments' && (
+          {activeTab === 'departments' && access.canViewDepartmentsTab && (
             <DepartmentsView
               departments={departments}
               bookings={bookings}
@@ -2517,7 +2623,9 @@ function DashboardWorkspace() {
           initialDraft={bookingDraft}
           isAdmin={access.canApproveBookings}
           coordinatorDepartment={
-            access.role === 'coordinator' ? access.branchName : undefined
+            access.role === 'coordinator' && access.branchName.trim().length >= 2
+              ? access.branchName.trim()
+              : undefined
           }
           allowWeekendBookings={systemSettings.allowWeekendBookings}
           maxAdvanceDays={systemSettings.maxAdvanceDays}

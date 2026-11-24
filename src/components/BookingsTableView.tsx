@@ -27,6 +27,7 @@ interface BookingsTableViewProps {
   canApprove?: boolean;
   canManageAll?: boolean;
   canCreate?: boolean;
+  scopedDepartmentName?: string;
   isLoading: boolean;
   statusFilter: 'all' | BookingStatus;
   onStatusFilterChange: (status: 'all' | BookingStatus) => void;
@@ -46,6 +47,7 @@ export function BookingsTableView({
   canApprove = isAdmin,
   canManageAll = isAdmin,
   canCreate = true,
+  scopedDepartmentName,
   isLoading,
   statusFilter,
   onStatusFilterChange,
@@ -106,6 +108,17 @@ export function BookingsTableView({
 
   return (
     <section className="space-y-4">
+      {scopedDepartmentName && (
+        <div className="bg-teal-50/70 border border-teal-200 rounded-xl px-4 py-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs text-teal-900">
+          <div>
+            تعرض هذه الصفحة حجوزات قسمك فقط (<strong className="font-semibold">{scopedDepartmentName}</strong>) لمتابعة حالة طلبات الحجز.
+          </div>
+          <span className="font-mono-num font-semibold text-teal-800 shrink-0">
+            الإجمالي: {bookings.length}
+          </span>
+        </div>
+      )}
+
       {canApprove && pendingCount > 0 && statusFilter !== 'pending' && (
         <div className="bg-amber-50/80 border border-amber-200 rounded-xl px-4 py-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div className="text-xs text-amber-900 flex items-center gap-2">

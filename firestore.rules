@@ -104,6 +104,13 @@ service cloud.firestore {
       return isSignedIn() && request.auth.uid == userId;
     }
 
+    function isCoordinatorForOwnDepartment(dept) {
+      return !hasAccountDoc() ||
+        myAccount().role != 'coordinator' ||
+        myAccount().branchName.trim().size() < 2 ||
+        dept.trim() == myAccount().branchName.trim();
+    }
+
     // --- Entity Validation Blueprints (No existing() or diff() inside) ---
     function isValidClassroom(data) {
       return data.keys().hasAll([
@@ -350,6 +357,7 @@ service cloud.firestore {
         incoming().updatedAt == request.time &&
         !isSuspendedAccount() &&
         !isViewerOnly() &&
+        isCoordinatorForOwnDepartment(incoming().department) &&
         exists(/databases/$(database)/documents/classrooms/$(incoming().roomId)) &&
         (hasPermission('approveBookings') || incoming().status == 'pending');
 
@@ -383,6 +391,7 @@ service cloud.firestore {
           (existing().creatorId == request.auth.uid &&
             existing().status == 'pending' &&
             incoming().status == existing().status &&
+            isCoordinatorForOwnDepartment(incoming().department) &&
             exists(/databases/$(database)/documents/classrooms/$(incoming().roomId)) &&
             incoming().diff(existing()).affectedKeys().hasOnly([
               'roomId', 'roomName', 'courseTitle', 'instructorName', 'department',

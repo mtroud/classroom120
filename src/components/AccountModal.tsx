@@ -130,8 +130,8 @@ export function AccountModal({
       setErrorMsg('يرجى إدخال اسم المنتسب أو مسؤول الشعبة (حرفين على الأقل).');
       return;
     }
-    if (form.branchName.trim().length < 1) {
-      setErrorMsg('يرجى تحديد الشعبة أو الوحدة الإدارية.');
+    if (form.branchName.trim().length < 2) {
+      setErrorMsg('يرجى تحديد اسم الشعبة أو القسم (حرفين على الأقل).');
       return;
     }
 
@@ -402,8 +402,10 @@ export function AccountModal({
                 {form.role === 'admin'
                   ? 'يمتلك مدير النظام جميع الصلاحيات تلقائياً'
                   : form.role === 'viewer'
-                    ? 'حساب اطلاع على جدول الدورات (يمكن تفعيل التقارير أدناه)'
-                    : 'حدد المهام المخولة لهذه الشعبة'}
+                    ? 'حساب اطلاع فقط: يعرض صفحة الجدول الدراسي فقط بدون حجز أو تعديل'
+                    : form.role === 'coordinator'
+                      ? 'منسق حجز قسم: يحجز القاعات لقسمه فقط مع كشف التعارضات'
+                      : 'حدد المهام المخولة لهذه الشعبة'}
               </span>
             </div>
 
@@ -411,8 +413,8 @@ export function AccountModal({
               {PERMISSION_ITEMS.map((item) => {
                 const disabled =
                   form.role === 'admin' ||
-                  (form.role === 'viewer' && item.key !== 'viewReports') ||
-                  (form.role === 'coordinator' && item.key !== 'viewReports');
+                  form.role === 'viewer' ||
+                  form.role === 'coordinator';
                 const checked = form.permissions[item.key];
                 return (
                   <label
