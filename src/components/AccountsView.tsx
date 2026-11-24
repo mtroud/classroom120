@@ -341,9 +341,9 @@ export function AccountsView({
 
   if (isLoading) {
     return (
-      <div className="bg-white border border-slate-200 rounded-xl p-6 space-y-3">
+      <div className="bg-white border border-[#DADCE0] rounded-2xl p-6 space-y-3">
         {[1, 2, 3, 4].map((i) => (
-          <div key={i} className="h-12 bg-slate-50 border border-slate-100 rounded-lg" />
+          <div key={i} className="h-12 bg-[#F8FAFD] border border-[#E8EAED] rounded-xl" />
         ))}
       </div>
     );
@@ -354,14 +354,14 @@ export function AccountsView({
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="flex items-start gap-3">
-          <div className="w-10 h-10 rounded-lg bg-teal-50 border border-teal-200 flex items-center justify-center shrink-0 text-teal-800">
+          <div className="w-10 h-10 rounded-xl bg-[#E8F0FE] border border-[#AECBFA] flex items-center justify-center shrink-0 text-[#0B57D0]">
             <ShieldCheck className="w-5 h-5" />
           </div>
           <div>
-            <h2 className="font-display text-lg font-bold text-slate-900">
+            <h2 className="font-display text-lg font-bold text-[#1F1F1F]">
               إدارة حسابات الشعب والمنتسبين والصلاحيات
             </h2>
-            <p className="text-xs text-slate-500 mt-0.5">
+            <p className="text-xs text-[#747775] mt-0.5">
               تخصيص صلاحيات مسؤولي شعب المجمع وإضافة حسابات المنتسبين للاطلاع على جدول الدورات
             </p>
           </div>
@@ -370,7 +370,7 @@ export function AccountsView({
         <button
           type="button"
           onClick={onAddAccount}
-          className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-teal-700 text-white text-xs font-semibold hover:bg-teal-800 transition-colors whitespace-nowrap shrink-0 cursor-pointer self-start sm:self-auto"
+          className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[#0B57D0] text-white text-xs font-semibold hover:bg-[#0842A0] g-elevation-1 transition-colors whitespace-nowrap shrink-0 cursor-pointer self-start sm:self-auto"
         >
           <Plus className="w-4 h-4" />
           <span>إضافة حساب جديد</span>
@@ -380,17 +380,17 @@ export function AccountsView({
       {/* Department Coordinators Provisioning Panel */}
       {activeDepartments.length > 0 &&
         (onCreateCoordinatorForDept || onBatchCreateCoordinators) && (
-          <div className="bg-white border border-slate-200 rounded-xl p-4 sm:p-5 space-y-3">
+          <div className="bg-white border border-[#DADCE0] rounded-2xl p-4 sm:p-5 space-y-3">
             <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
               <div className="flex items-start gap-3">
-                <div className="w-9 h-9 rounded-lg bg-teal-50 border border-teal-200 flex items-center justify-center shrink-0 text-teal-800">
+                <div className="w-9 h-9 rounded-xl bg-[#E8F0FE] border border-[#AECBFA] flex items-center justify-center shrink-0 text-[#0B57D0]">
                   <Building2 className="w-4 h-4" />
                 </div>
                 <div>
-                  <div className="text-xs font-bold text-slate-900">
+                  <div className="text-xs font-bold text-[#1F1F1F]">
                     حسابات منسقي الأقسام للحجز السريع
                   </div>
-                  <p className="text-[11px] text-slate-600 mt-0.5 leading-relaxed">
+                  <p className="text-[11px] text-[#444746] mt-0.5 leading-relaxed">
                     {missingCoordinatorDepts.length > 0
                       ? `يوجد ${missingCoordinatorDepts.length} قسم فعّال بدون حساب منسق حجز حتى الآن (من أصل ${activeDepartments.length} قسماً).`
                       : `جميع الأقسام الفعّالة (${activeDepartments.length}) لديها حسابات منسقين جاهزة لرفع طلبات الحجز.`}
@@ -404,7 +404,7 @@ export function AccountsView({
                     <button
                       type="button"
                       onClick={() => setShowMissingDepts((prev) => !prev)}
-                      className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border border-slate-200 bg-white text-slate-700 text-xs font-semibold hover:bg-slate-50 transition-colors cursor-pointer"
+                      className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl border border-[#DADCE0] bg-white text-[#1F1F1F] text-xs font-semibold hover:bg-[#F0F4F9] transition-colors cursor-pointer"
                     >
                       {showMissingDepts ? (
                         <ChevronUp className="w-3.5 h-3.5" />
@@ -422,7 +422,7 @@ export function AccountsView({
                       type="button"
                       disabled={batchCreating}
                       onClick={() => void handleRunBatchCoordinators()}
-                      className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-teal-700 text-white text-xs font-semibold hover:bg-teal-800 disabled:opacity-60 transition-colors cursor-pointer"
+                      className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[#0B57D0] text-white text-xs font-semibold hover:bg-[#0842A0] disabled:opacity-60 g-elevation-1 transition-colors cursor-pointer"
                     >
                       <UserPlus className="w-3.5 h-3.5" />
                       <span>
@@ -437,25 +437,25 @@ export function AccountsView({
             </div>
 
             {batchError && (
-              <div className="bg-red-50 border border-red-200 rounded-lg px-3.5 py-2.5 text-xs text-red-800 flex items-center gap-2">
+              <div className="bg-[#FCE8E6] border border-[#F6AEA9] rounded-xl px-3.5 py-2.5 text-xs text-[#C5221F] flex items-center gap-2">
                 <AlertCircle className="w-4 h-4 shrink-0" />
                 <span>{batchError}</span>
               </div>
             )}
 
             {showMissingDepts && missingCoordinatorDepts.length > 0 && (
-              <div className="pt-2 border-t border-slate-100 grid grid-cols-1 md:grid-cols-2 gap-2">
+              <div className="pt-2 border-t border-[#E8EAED] grid grid-cols-1 md:grid-cols-2 gap-2">
                 {missingCoordinatorDepts.map((dept) => (
                   <div
                     key={dept.id}
-                    className="flex items-center justify-between gap-3 bg-slate-50 border border-slate-200 rounded-lg px-3.5 py-2.5"
+                    className="flex items-center justify-between gap-3 bg-[#F8FAFD] border border-[#E8EAED] rounded-xl px-3.5 py-2.5"
                   >
                     <div className="min-w-0">
-                      <div className="text-xs font-semibold text-slate-900 truncate">
+                      <div className="text-xs font-semibold text-[#1F1F1F] truncate">
                         {dept.name}
                       </div>
-                      <div className="text-[11px] text-slate-500 mt-0.5 flex items-center gap-2">
-                        <span className="font-mono-num text-teal-800">{dept.code}</span>
+                      <div className="text-[11px] text-[#747775] mt-0.5 flex items-center gap-2">
+                        <span className="font-mono-num text-[#0B57D0]">{dept.code}</span>
                         {dept.headName && <span>· {dept.headName}</span>}
                       </div>
                     </div>
@@ -463,7 +463,7 @@ export function AccountsView({
                       <button
                         type="button"
                         onClick={() => onCreateCoordinatorForDept(dept)}
-                        className="inline-flex items-center gap-1 px-3 py-1.5 rounded-md bg-white border border-teal-200 text-teal-800 text-[11px] font-semibold hover:bg-teal-50 shrink-0 cursor-pointer"
+                        className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-[#E8F0FE] border border-[#AECBFA] text-[#0B57D0] text-[11px] font-semibold hover:bg-[#D3E3FD] shrink-0 cursor-pointer"
                       >
                         <Plus className="w-3 h-3" />
                         <span>إنشاء حساب</span>
@@ -478,13 +478,13 @@ export function AccountsView({
 
       {/* Batch Created Coordinators Table */}
       {batchCreatedCredentials && batchCreatedCredentials.length > 0 && (
-        <div className="bg-teal-50/70 border border-teal-200 rounded-xl p-4 sm:p-5 space-y-3">
+        <div className="bg-[#E8F0FE] border border-[#AECBFA] rounded-2xl p-4 sm:p-5 space-y-3">
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div>
-              <div className="text-xs font-bold text-teal-900">
+              <div className="text-xs font-bold text-[#041E49]">
                 تم إنشاء {batchCreatedCredentials.length} حساب منسق قسم بنجاح — يرجى حفظ البيانات أو تصديرها لتسليمها للأقسام
               </div>
-              <p className="text-[11px] text-teal-800 mt-0.5">
+              <p className="text-[11px] text-[#0B57D0] mt-0.5">
                 لن تظهر كلمات المرور مرة أخرى بعد إغلاق هذه البطاقة لأسباب أمنية.
               </p>
             </div>
@@ -493,7 +493,7 @@ export function AccountsView({
               <button
                 type="button"
                 onClick={() => void handleCopyBatchCredentials()}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-teal-700 text-white text-xs font-semibold hover:bg-teal-800 cursor-pointer"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#0B57D0] text-white text-xs font-semibold hover:bg-[#0842A0] cursor-pointer"
               >
                 {copiedBatch ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
                 <span>{copiedBatch ? 'تم النسخ' : 'نسخ الكل'}</span>
@@ -501,7 +501,7 @@ export function AccountsView({
               <button
                 type="button"
                 onClick={handleExportBatchCsv}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-teal-300 bg-white text-teal-900 text-xs font-semibold hover:bg-teal-50 cursor-pointer"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-[#AECBFA] bg-white text-[#0B57D0] text-xs font-semibold hover:bg-[#F0F4F9] cursor-pointer"
               >
                 <Download className="w-3.5 h-3.5" />
                 <span>تصدير CSV</span>
@@ -511,7 +511,7 @@ export function AccountsView({
                   type="button"
                   onClick={onDismissBatchCreated}
                   aria-label="إغلاق"
-                  className="p-1.5 rounded-md text-teal-700 hover:bg-teal-100 cursor-pointer"
+                  className="p-1.5 rounded-lg text-[#0B57D0] hover:bg-[#D3E3FD] cursor-pointer"
                 >
                   <X className="w-4 h-4" />
                 </button>
@@ -519,25 +519,25 @@ export function AccountsView({
             </div>
           </div>
 
-          <div className="bg-white border border-teal-200 rounded-lg overflow-x-auto">
+          <div className="bg-white border border-[#AECBFA] rounded-xl overflow-x-auto">
             <table className="w-full text-right border-collapse min-w-[580px] text-xs">
               <thead>
-                <tr className="bg-slate-50 border-b border-slate-200 text-slate-600 font-semibold">
+                <tr className="bg-[#F8FAFD] border-b border-[#DADCE0] text-[#444746] font-semibold">
                   <th className="px-3 py-2">القسم</th>
                   <th className="px-3 py-2">الاسم التعريفي</th>
                   <th className="px-3 py-2">اليوزر</th>
                   <th className="px-3 py-2">كلمة المرور</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100">
+              <tbody className="divide-y divide-[#E8EAED]">
                 {batchCreatedCredentials.map((item) => (
                   <tr key={item.username}>
-                    <td className="px-3 py-2 font-medium text-slate-900">{item.branchName}</td>
-                    <td className="px-3 py-2 text-slate-600">{item.displayName}</td>
-                    <td className="px-3 py-2 font-mono-num font-semibold text-teal-900" dir="ltr">
+                    <td className="px-3 py-2 font-medium text-[#1F1F1F]">{item.branchName}</td>
+                    <td className="px-3 py-2 text-[#444746]">{item.displayName}</td>
+                    <td className="px-3 py-2 font-mono-num font-semibold text-[#0B57D0]" dir="ltr">
                       {item.username}
                     </td>
-                    <td className="px-3 py-2 font-mono-num font-semibold text-slate-900" dir="ltr">
+                    <td className="px-3 py-2 font-mono-num font-semibold text-[#1F1F1F]" dir="ltr">
                       {item.password}
                     </td>
                   </tr>
@@ -550,18 +550,18 @@ export function AccountsView({
 
       {/* Unified Viewer Quick-Setup Banner */}
       {!hasActiveViewerAccount && onCreateUnifiedViewer && (
-        <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="bg-[#F8FAFD] border border-[#DADCE0] rounded-2xl p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="flex items-start gap-3">
-            <div className="w-9 h-9 rounded-lg bg-white border border-slate-200 flex items-center justify-center shrink-0 text-teal-800">
+            <div className="w-9 h-9 rounded-xl bg-white border border-[#DADCE0] flex items-center justify-center shrink-0 text-[#0B57D0]">
               <Users className="w-4 h-4" />
             </div>
             <div>
-              <div className="text-xs font-bold text-slate-900">
+              <div className="text-xs font-bold text-[#1F1F1F]">
                 إنشاء حساب اطلاع موحّد للمنتسبين
               </div>
-              <p className="text-[11px] text-slate-600 mt-0.5 leading-relaxed">
+              <p className="text-[11px] text-[#444746] mt-0.5 leading-relaxed">
                 بدلاً من إضافة حساب منفصل لكل منتسب، أنشئ حساباً واحداً بصلاحية «اطلاع فقط» (مثل اليوزر{' '}
-                <span className="font-mono-num font-semibold text-slate-800" dir="ltr">courses</span>
+                <span className="font-mono-num font-semibold text-[#1F1F1F]" dir="ltr">courses</span>
                 ) ومشاركته مع المنتسبين للاطلاع على جدول الدورات.
               </p>
             </div>
@@ -570,7 +570,7 @@ export function AccountsView({
           <button
             type="button"
             onClick={onCreateUnifiedViewer}
-            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-slate-900 text-white text-xs font-semibold hover:bg-slate-800 transition-colors whitespace-nowrap shrink-0 cursor-pointer self-start sm:self-center"
+            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[#1F1F1F] text-white text-xs font-semibold hover:bg-[#333333] transition-colors whitespace-nowrap shrink-0 cursor-pointer self-start sm:self-center"
           >
             <Plus className="w-3.5 h-3.5" />
             <span>إنشاء حساب اطلاع موحّد</span>
@@ -580,13 +580,13 @@ export function AccountsView({
 
       {/* Newly Created Credentials Notice */}
       {lastCreatedCredentials && (
-        <div className="bg-teal-50/70 border border-teal-200 rounded-xl p-4 sm:p-5 space-y-3">
+        <div className="bg-[#E6F4EA] border border-[#CEEAD6] rounded-2xl p-4 sm:p-5 space-y-3">
           <div className="flex items-start justify-between gap-3">
             <div>
-              <div className="text-xs font-bold text-teal-900">
+              <div className="text-xs font-bold text-[#137333]">
                 تم إنشاء حساب الدخول العادي بنجاح — يرجى تسليم البيانات للمستفيد
               </div>
-              <p className="text-[11px] text-teal-800 mt-0.5">
+              <p className="text-[11px] text-[#137333] mt-0.5">
                 {lastCreatedCredentials.displayName} · {lastCreatedCredentials.branchName} · {ROLE_LABEL_AR[lastCreatedCredentials.role]}
               </p>
             </div>
@@ -595,24 +595,24 @@ export function AccountsView({
                 type="button"
                 onClick={onDismissCreatedCredentials}
                 aria-label="إغلاق"
-                className="p-1 rounded-md text-teal-700 hover:bg-teal-100 cursor-pointer"
+                className="p-1 rounded-lg text-[#137333] hover:bg-[#CEEAD6]/60 cursor-pointer"
               >
                 <X className="w-4 h-4" />
               </button>
             )}
           </div>
 
-          <div className="flex flex-wrap items-center justify-between gap-3 bg-white border border-teal-200 rounded-lg px-4 py-2.5">
+          <div className="flex flex-wrap items-center justify-between gap-3 bg-white border border-[#CEEAD6] rounded-xl px-4 py-2.5">
             <div className="flex flex-wrap items-center gap-x-6 gap-y-1.5 text-xs">
               <span>
-                <span className="text-slate-500">اليوزر: </span>
-                <strong className="font-mono-num text-slate-900" dir="ltr">
+                <span className="text-[#747775]">اليوزر: </span>
+                <strong className="font-mono-num text-[#1F1F1F]" dir="ltr">
                   {lastCreatedCredentials.username}
                 </strong>
               </span>
               <span>
-                <span className="text-slate-500">كلمة المرور: </span>
-                <strong className="font-mono-num text-slate-900" dir="ltr">
+                <span className="text-[#747775]">كلمة المرور: </span>
+                <strong className="font-mono-num text-[#1F1F1F]" dir="ltr">
                   {lastCreatedCredentials.password}
                 </strong>
               </span>
@@ -621,7 +621,7 @@ export function AccountsView({
             <button
               type="button"
               onClick={() => void handleCopyCredentials()}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-teal-700 text-white text-xs font-semibold hover:bg-teal-800 transition-colors whitespace-nowrap shrink-0 cursor-pointer"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#137333] text-white text-xs font-semibold hover:bg-[#0D5626] transition-colors whitespace-nowrap shrink-0 cursor-pointer"
             >
               {copiedCreds ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
               <span>{copiedCreds ? 'تم النسخ' : 'نسخ بيانات الدخول'}</span>
@@ -632,57 +632,57 @@ export function AccountsView({
 
       {/* Summary Strip */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="bg-white border border-slate-200 rounded-xl p-4">
-          <div className="text-xs text-slate-500">إجمالي الحسابات المضافة</div>
-          <div className="font-mono-num text-2xl font-semibold text-slate-900 mt-1">
+        <div className="bg-white border border-[#DADCE0] rounded-2xl p-4">
+          <div className="text-xs text-[#444746]">إجمالي الحسابات المضافة</div>
+          <div className="font-mono-num text-2xl font-semibold text-[#1F1F1F] mt-1">
             {counts.total}
           </div>
         </div>
-        <div className="bg-white border border-slate-200 rounded-xl p-4">
-          <div className="text-xs text-slate-500">مسؤولو شعب المجمع</div>
-          <div className="font-mono-num text-2xl font-semibold text-teal-800 mt-1">
+        <div className="bg-white border border-[#DADCE0] rounded-2xl p-4">
+          <div className="text-xs text-[#444746]">مسؤولو شعب المجمع</div>
+          <div className="font-mono-num text-2xl font-semibold text-[#0B57D0] mt-1">
             {counts.supervisors}
           </div>
         </div>
-        <div className="bg-white border border-slate-200 rounded-xl p-4">
-          <div className="text-xs text-slate-500">حسابات المنتسبين (اطلاع)</div>
-          <div className="font-mono-num text-2xl font-semibold text-slate-900 mt-1">
+        <div className="bg-white border border-[#DADCE0] rounded-2xl p-4">
+          <div className="text-xs text-[#444746]">حسابات المنتسبين (اطلاع)</div>
+          <div className="font-mono-num text-2xl font-semibold text-[#137333] mt-1">
             {counts.viewers}
           </div>
         </div>
-        <div className="bg-white border border-slate-200 rounded-xl p-4">
-          <div className="text-xs text-slate-500">حسابات معلقة</div>
-          <div className="font-mono-num text-2xl font-semibold text-amber-700 mt-1">
+        <div className="bg-white border border-[#DADCE0] rounded-2xl p-4">
+          <div className="text-xs text-[#444746]">حسابات معلقة</div>
+          <div className="font-mono-num text-2xl font-semibold text-[#B06000] mt-1">
             {counts.suspended}
           </div>
         </div>
       </div>
 
       {/* Mini Coordinator Control Dashboard */}
-      <div className="bg-white border border-slate-200 rounded-xl overflow-hidden">
-        <div className="px-4 sm:px-5 py-4 border-b border-slate-200 flex flex-col lg:flex-row lg:items-center justify-between gap-3">
+      <div className="bg-white border border-[#DADCE0] rounded-2xl overflow-hidden">
+        <div className="px-4 sm:px-5 py-4 border-b border-[#E8EAED] flex flex-col lg:flex-row lg:items-center justify-between gap-3">
           <div className="flex items-start gap-3">
-            <div className="w-9 h-9 rounded-lg bg-teal-50 border border-teal-200 flex items-center justify-center shrink-0 text-teal-800">
+            <div className="w-9 h-9 rounded-xl bg-[#E8F0FE] border border-[#AECBFA] flex items-center justify-center shrink-0 text-[#0B57D0]">
               <BarChart3 className="w-4 h-4" />
             </div>
             <div>
-              <h3 className="text-sm font-bold text-slate-900">
+              <h3 className="text-sm font-bold text-[#1F1F1F]">
                 لوحة متابعة منسقي الأقسام
               </h3>
-              <p className="text-[11px] text-slate-500 mt-0.5">
+              <p className="text-[11px] text-[#747775] mt-0.5">
                 ملخص سريع للحجوزات التي أنشأها كل منسق خلال شهر {currentMonthLabel}
               </p>
             </div>
           </div>
 
           <div className="flex flex-wrap items-center gap-2.5">
-            <label className="inline-flex items-center gap-2 text-xs text-slate-600">
+            <label className="inline-flex items-center gap-2 text-xs text-[#444746]">
               <span className="whitespace-nowrap font-medium">القسم:</span>
               <select
                 value={departmentFilter}
                 onChange={(e) => setDepartmentFilter(e.target.value)}
                 aria-label="تصفية المنسقين حسب القسم"
-                className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-900 focus:outline-none focus:border-teal-700 cursor-pointer min-w-[190px]"
+                className="rounded-xl border border-[#DADCE0] bg-white px-3 py-1.5 text-xs font-medium text-[#1F1F1F] focus:outline-none focus:border-[#0B57D0] focus:ring-2 focus:ring-[#0B57D0]/15 cursor-pointer min-w-[190px]"
               >
                 <option value="all">جميع الأقسام ({coordinatorStats.allCoordinatorsCount} منسق)</option>
                 {departmentOptions.map((deptName) => (
@@ -697,7 +697,7 @@ export function AccountsView({
               <button
                 type="button"
                 onClick={() => setDepartmentFilter('all')}
-                className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg border border-slate-200 bg-white text-xs font-medium text-slate-700 hover:bg-slate-50 transition-colors whitespace-nowrap shrink-0 cursor-pointer"
+                className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl border border-[#DADCE0] bg-white text-xs font-medium text-[#1F1F1F] hover:bg-[#F0F4F9] transition-colors whitespace-nowrap shrink-0 cursor-pointer"
               >
                 <RotateCcw className="w-3.5 h-3.5" />
                 <span>إظهار الكل</span>
@@ -712,10 +712,10 @@ export function AccountsView({
                     prev === 'coordinator' ? 'all' : 'coordinator'
                   )
                 }
-                className={`px-3 py-1.5 rounded-lg border text-xs font-medium transition-colors whitespace-nowrap shrink-0 cursor-pointer ${
+                className={`px-3 py-1.5 rounded-xl border text-xs font-medium transition-colors whitespace-nowrap shrink-0 cursor-pointer ${
                   roleFilter === 'coordinator'
-                    ? 'border-teal-700 bg-teal-700 text-white'
-                    : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50'
+                    ? 'border-[#0B57D0] bg-[#0B57D0] text-white'
+                    : 'border-[#DADCE0] bg-white text-[#1F1F1F] hover:bg-[#F0F4F9]'
                 }`}
               >
                 {roleFilter === 'coordinator'
@@ -727,55 +727,55 @@ export function AccountsView({
         </div>
 
         {/* 4-column Monthly Coordinator Metrics Strip */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 divide-y lg:divide-y-0 lg:divide-x lg:divide-x-reverse divide-slate-200 bg-slate-50/50 border-b border-slate-200">
+        <div className="grid grid-cols-2 lg:grid-cols-4 divide-y lg:divide-y-0 lg:divide-x lg:divide-x-reverse divide-[#E8EAED] bg-[#F8FAFD] border-b border-[#E8EAED]">
           <div className="px-4 py-3.5">
-            <div className="text-[11px] text-slate-500">المنسقون المعروضون</div>
-            <div className="font-mono-num text-xl font-semibold text-slate-900 mt-1">
+            <div className="text-[11px] text-[#747775]">المنسقون المعروضون</div>
+            <div className="font-mono-num text-xl font-semibold text-[#1F1F1F] mt-1">
               {coordinatorStats.totalCoordinators}
             </div>
-            <div className="text-[11px] text-slate-500 mt-0.5 font-mono-num">
+            <div className="text-[11px] text-[#747775] mt-0.5 font-mono-num">
               نشط: {coordinatorStats.activeCoordinators}
             </div>
           </div>
 
           <div className="px-4 py-3.5">
-            <div className="text-[11px] text-slate-500">حجوزات المنسقين هذا الشهر</div>
-            <div className="font-mono-num text-xl font-semibold text-teal-800 mt-1">
+            <div className="text-[11px] text-[#747775]">حجوزات المنسقين هذا الشهر</div>
+            <div className="font-mono-num text-xl font-semibold text-[#0B57D0] mt-1">
               {coordinatorStats.totalMonthBookings}
             </div>
-            <div className="text-[11px] text-slate-500 mt-0.5">
+            <div className="text-[11px] text-[#747775] mt-0.5">
               خلال {currentMonthLabel}
             </div>
           </div>
 
           <div className="px-4 py-3.5">
-            <div className="text-[11px] text-slate-500">تفصيل حالة الشهر</div>
-            <div className="font-mono-num text-xl font-semibold text-slate-900 mt-1">
+            <div className="text-[11px] text-[#747775]">تفصيل حالة الشهر</div>
+            <div className="font-mono-num text-xl font-semibold text-[#1F1F1F] mt-1">
               {coordinatorStats.totalMonthConfirmed}
-              <span className="text-xs font-normal text-slate-400 mx-1.5">/</span>
-              <span className="text-amber-700">{coordinatorStats.totalMonthPending}</span>
+              <span className="text-xs font-normal text-[#9AA0A6] mx-1.5">/</span>
+              <span className="text-[#B06000]">{coordinatorStats.totalMonthPending}</span>
             </div>
-            <div className="text-[11px] text-slate-500 mt-0.5">
+            <div className="text-[11px] text-[#747775] mt-0.5">
               مؤكد · بانتظار الموافقة
             </div>
           </div>
 
           <div className="px-4 py-3.5">
-            <div className="text-[11px] text-slate-500">الأكثر نشاطاً هذا الشهر</div>
+            <div className="text-[11px] text-[#747775]">الأكثر نشاطاً هذا الشهر</div>
             {coordinatorStats.topCoordinator ? (
               <>
-                <div className="text-xs font-bold text-slate-900 mt-1.5 truncate">
+                <div className="text-xs font-bold text-[#1F1F1F] mt-1.5 truncate">
                   {coordinatorStats.topCoordinator.account.branchName}
                 </div>
-                <div className="text-[11px] text-slate-500 mt-0.5 truncate">
+                <div className="text-[11px] text-[#747775] mt-0.5 truncate">
                   {coordinatorStats.topCoordinator.account.displayName} ·{' '}
-                  <span className="font-mono-num font-semibold text-teal-800">
+                  <span className="font-mono-num font-semibold text-[#0B57D0]">
                     {coordinatorStats.topCoordinator.thisMonthCount} حجوزات
                   </span>
                 </div>
               </>
             ) : (
-              <div className="text-xs text-slate-400 mt-2">
+              <div className="text-xs text-[#9AA0A6] mt-2">
                 لا توجد حجوزات منسقين هذا الشهر
               </div>
             )}
@@ -785,12 +785,12 @@ export function AccountsView({
         {/* Coordinator Monthly Table or Empty State */}
         {coordinatorStats.rows.length === 0 ? (
           <div className="px-6 py-8 text-center space-y-2">
-            <p className="text-xs font-semibold text-slate-800">
+            <p className="text-xs font-semibold text-[#1F1F1F]">
               {coordinatorStats.allCoordinatorsCount === 0
                 ? 'لا توجد حسابات منسقي أقسام مضافة حتى الآن'
                 : `لا يوجد حساب منسق مرتبط بقسم «${departmentFilter}»`}
             </p>
-            <p className="text-[11px] text-slate-500 max-w-md mx-auto">
+            <p className="text-[11px] text-[#747775] max-w-md mx-auto">
               {coordinatorStats.allCoordinatorsCount === 0
                 ? 'يمكنك إنشاء حسابات المنسقين من لوحة «حسابات منسقي الأقسام للحجز السريع» أعلاه لمتابعة عدد حجوزاتهم الشهرية هنا.'
                 : 'اختر قسماً آخر أو أعد ضبط التصفية لعرض جميع منسقي الأقسام.'}
@@ -800,7 +800,7 @@ export function AccountsView({
                 <button
                   type="button"
                   onClick={() => setDepartmentFilter('all')}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-200 bg-white text-xs font-medium text-slate-700 hover:bg-slate-50 cursor-pointer"
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-[#DADCE0] bg-white text-xs font-medium text-[#1F1F1F] hover:bg-[#F0F4F9] cursor-pointer"
                 >
                   <RotateCcw className="w-3.5 h-3.5" />
                   <span>عرض جميع الأقسام</span>
@@ -812,7 +812,7 @@ export function AccountsView({
           <div className="overflow-x-auto">
             <table className="w-full text-right border-collapse min-w-[760px]">
               <thead>
-                <tr className="bg-slate-50 border-b border-slate-200 text-xs font-semibold text-slate-600">
+                <tr className="bg-[#F8FAFD] border-b border-[#DADCE0] text-xs font-semibold text-[#444746]">
                   <th className="px-4 py-2.5">القسم</th>
                   <th className="px-4 py-2.5">المنسق واليوزر</th>
                   <th className="px-4 py-2.5">حجوزات هذا الشهر</th>
@@ -821,7 +821,7 @@ export function AccountsView({
                   <th className="px-4 py-2.5 text-left">إدارة</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100 text-xs">
+              <tbody className="divide-y divide-[#E8EAED] text-xs">
                 {coordinatorStats.rows.map((row) => {
                   const isRowActive = row.account.status === 'active';
                   const ratio =
@@ -834,17 +834,17 @@ export function AccountsView({
                   return (
                     <tr
                       key={row.account.id}
-                      className="hover:bg-slate-50/70 transition-colors"
+                      className="hover:bg-[#F8FAFD] transition-colors"
                     >
-                      <td className="px-4 py-2.5 font-semibold text-slate-900">
+                      <td className="px-4 py-2.5 font-semibold text-[#1F1F1F]">
                         {row.account.branchName}
                       </td>
                       <td className="px-4 py-2.5">
-                        <div className="font-medium text-slate-800">
+                        <div className="font-medium text-[#1F1F1F]">
                           {row.account.displayName}
                         </div>
                         <div
-                          className="text-[11px] font-mono-num text-slate-500 mt-0.5"
+                          className="text-[11px] font-mono-num text-[#747775] mt-0.5"
                           dir="ltr"
                         >
                           {formatAccountLoginIdentifier(row.account)}
@@ -852,17 +852,17 @@ export function AccountsView({
                       </td>
                       <td className="px-4 py-2.5">
                         <div className="flex items-center gap-3">
-                          <span className="font-mono-num text-sm font-bold text-teal-800 min-w-[2ch]">
+                          <span className="font-mono-num text-sm font-bold text-[#0B57D0] min-w-[2ch]">
                             {row.thisMonthCount}
                           </span>
                           <div className="flex-1 max-w-[140px] space-y-1">
-                            <div className="h-1.5 w-full bg-slate-100 rounded-sm overflow-hidden">
+                            <div className="h-1.5 w-full bg-[#E8EAED] rounded-sm overflow-hidden">
                               <div
-                                className="h-full bg-teal-700 transition-all"
+                                className="h-full bg-[#1A73E8] transition-all"
                                 style={{ width: `${ratio}%` }}
                               />
                             </div>
-                            <div className="text-[11px] text-slate-500 font-mono-num whitespace-nowrap">
+                            <div className="text-[11px] text-[#747775] font-mono-num whitespace-nowrap">
                               {row.thisMonthCount > 0
                                 ? `مؤكد ${row.confirmedCount} · معلق ${row.pendingCount}`
                                 : 'لا توجد حجوزات هذا الشهر'}
@@ -871,23 +871,23 @@ export function AccountsView({
                         </div>
                       </td>
                       <td className="px-4 py-2.5">
-                        <div className="font-mono-num font-semibold text-slate-800">
+                        <div className="font-mono-num font-semibold text-[#1F1F1F]">
                           {row.allTimeCount}
                         </div>
                         {row.latestDate && (
-                          <div className="text-[11px] text-slate-500 font-mono-num mt-0.5">
+                          <div className="text-[11px] text-[#747775] font-mono-num mt-0.5">
                             آخر تاريخ: {row.latestDate}
                           </div>
                         )}
                       </td>
                       <td className="px-4 py-2.5 whitespace-nowrap">
                         {isRowActive ? (
-                          <span className="inline-flex items-center gap-1 font-medium text-emerald-700">
+                          <span className="inline-flex items-center gap-1 font-medium text-[#137333]">
                             <CheckCircle2 className="w-3.5 h-3.5" />
                             نشط
                           </span>
                         ) : (
-                          <span className="inline-flex items-center gap-1 font-medium text-amber-700">
+                          <span className="inline-flex items-center gap-1 font-medium text-[#B06000]">
                             <PauseCircle className="w-3.5 h-3.5" />
                             معلق
                           </span>
@@ -897,7 +897,7 @@ export function AccountsView({
                         <button
                           type="button"
                           onClick={() => onEditAccount(row.account)}
-                          className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md border border-slate-200 bg-white text-[11px] font-medium text-slate-700 hover:bg-slate-50 transition-colors cursor-pointer"
+                          className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg border border-[#DADCE0] bg-white text-[11px] font-medium text-[#1F1F1F] hover:bg-[#F0F4F9] transition-colors cursor-pointer"
                         >
                           <Pencil className="w-3 h-3" />
                           <span>تعديل</span>
@@ -913,9 +913,9 @@ export function AccountsView({
       </div>
 
       {/* Filter Toolbar */}
-      <div className="bg-white border border-slate-200 rounded-xl p-4 flex flex-col lg:flex-row lg:items-center justify-between gap-3">
+      <div className="bg-white border border-[#DADCE0] rounded-2xl p-4 flex flex-col lg:flex-row lg:items-center justify-between gap-3">
         <div className="flex flex-wrap items-center gap-3 w-full">
-          <div className="inline-flex flex-wrap items-center p-1 bg-slate-100 rounded-lg">
+          <div className="inline-flex flex-wrap items-center p-1 bg-[#F0F4F9] rounded-xl">
             {(
               [
                 ['all', 'الكل'],
@@ -929,10 +929,10 @@ export function AccountsView({
                 key={val}
                 type="button"
                 onClick={() => setRoleFilter(val)}
-                className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors whitespace-nowrap shrink-0 cursor-pointer ${
+                className={`px-3 py-1.5 text-xs rounded-lg transition-colors whitespace-nowrap shrink-0 cursor-pointer ${
                   roleFilter === val
-                    ? 'bg-white text-slate-900 shadow-sm'
-                    : 'text-slate-600 hover:text-slate-900'
+                    ? 'bg-white text-[#0B57D0] font-semibold g-elevation-1'
+                    : 'text-[#444746] font-medium hover:text-[#1F1F1F]'
                 }`}
               >
                 {label}
@@ -944,7 +944,7 @@ export function AccountsView({
             value={departmentFilter}
             onChange={(e) => setDepartmentFilter(e.target.value)}
             aria-label="تصفية سجل الحسابات حسب القسم"
-            className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs text-slate-900 focus:outline-none focus:border-teal-700 cursor-pointer min-w-[180px]"
+            className="rounded-xl border border-[#DADCE0] bg-white px-3 py-2 text-xs text-[#1F1F1F] focus:outline-none focus:border-[#0B57D0] focus:ring-2 focus:ring-[#0B57D0]/15 cursor-pointer min-w-[180px]"
           >
             <option value="all">كل الأقسام والشعب</option>
             {departmentOptions.map((deptName) => (
@@ -955,13 +955,13 @@ export function AccountsView({
           </select>
 
           <div className="relative min-w-[220px] flex-1">
-            <Search className="w-4 h-4 text-slate-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+            <Search className="w-4 h-4 text-[#747775] absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
             <input
               type="text"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="بحث بالاسم، البريد، أو الشعبة..."
-              className="w-full rounded-lg border border-slate-200 bg-white pr-9 pl-3 py-2 text-xs text-slate-900 focus:outline-none focus:border-teal-700"
+              className="w-full rounded-xl border border-[#DADCE0] bg-white pr-9 pl-3 py-2 text-xs text-[#1F1F1F] placeholder:text-[#747775] focus:outline-none focus:border-[#0B57D0] focus:ring-2 focus:ring-[#0B57D0]/15"
             />
           </div>
 
@@ -973,7 +973,7 @@ export function AccountsView({
                 setDepartmentFilter('all');
                 setSearch('');
               }}
-              className="inline-flex items-center gap-1 px-3 py-2 rounded-lg border border-slate-200 bg-white text-xs font-medium text-slate-600 hover:bg-slate-50 transition-colors whitespace-nowrap shrink-0 cursor-pointer"
+              className="inline-flex items-center gap-1 px-3 py-2 rounded-xl border border-[#DADCE0] bg-white text-xs font-medium text-[#444746] hover:bg-[#F0F4F9] transition-colors whitespace-nowrap shrink-0 cursor-pointer"
             >
               <RotateCcw className="w-3.5 h-3.5" />
               <span>مسح التصفية</span>
@@ -984,13 +984,13 @@ export function AccountsView({
 
       {/* Accounts Table / Empty State */}
       {filtered.length === 0 ? (
-        <div className="bg-white border border-slate-200 rounded-xl p-12 text-center space-y-3">
-          <p className="text-sm font-medium text-slate-800">
+        <div className="bg-white border border-[#DADCE0] rounded-2xl p-12 text-center space-y-3">
+          <p className="text-sm font-medium text-[#1F1F1F]">
             {accounts.length === 0
               ? 'لم يتم إضافة حسابات للشعب أو المنتسبين بعد'
               : 'لا توجد حسابات مطابقة لمعايير البحث'}
           </p>
-          <p className="text-xs text-slate-500 max-w-md mx-auto">
+          <p className="text-xs text-[#747775] max-w-md mx-auto">
             أضف حساباً بسيطاً (يوزر وكلمة مرور) لمسؤول كل شعبة حسب صلاحياته، أو أنشئ حساب اطلاع موحّد للمنتسبين للاطلاع على جدول الدورات.
           </p>
           {accounts.length === 0 && (
@@ -998,7 +998,7 @@ export function AccountsView({
               <button
                 type="button"
                 onClick={onAddAccount}
-                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-teal-700 text-white text-xs font-semibold hover:bg-teal-800 transition-colors cursor-pointer"
+                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[#0B57D0] text-white text-xs font-semibold hover:bg-[#0842A0] g-elevation-1 transition-colors cursor-pointer"
               >
                 <Plus className="w-4 h-4" />
                 <span>إضافة أول حساب</span>
@@ -1007,11 +1007,11 @@ export function AccountsView({
           )}
         </div>
       ) : (
-        <div className="bg-white border border-slate-200 rounded-xl overflow-hidden">
+        <div className="bg-white border border-[#DADCE0] rounded-2xl overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full text-right border-collapse min-w-[900px]">
               <thead>
-                <tr className="bg-slate-50 border-b border-slate-200 text-xs font-semibold text-slate-600">
+                <tr className="bg-[#F8FAFD] border-b border-[#DADCE0] text-xs font-semibold text-[#444746]">
                   <th className="px-4 py-3">المستخدم والبريد الإلكتروني</th>
                   <th className="px-4 py-3">الشعبة / الجهة</th>
                   <th className="px-4 py-3">الدور</th>
@@ -1020,18 +1020,18 @@ export function AccountsView({
                   <th className="px-4 py-3 text-left">الإجراءات</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100 text-sm">
+              <tbody className="divide-y divide-[#E8EAED] text-sm">
                 {filtered.map((acc) => {
                   const isActive = acc.status === 'active';
                   const isBusy = busyId === acc.id;
                   return (
-                    <tr key={acc.id} className="hover:bg-slate-50/70 transition-colors">
+                    <tr key={acc.id} className="hover:bg-[#F8FAFD] transition-colors">
                       <td className="px-4 py-3">
-                        <div className="text-xs font-semibold text-slate-900">
+                        <div className="text-xs font-semibold text-[#1F1F1F]">
                           {acc.displayName}
                         </div>
-                        <div className="text-[11px] text-slate-500 mt-0.5 flex flex-wrap items-center gap-1.5">
-                          <span className="font-mono-num text-slate-700" dir="ltr">
+                        <div className="text-[11px] text-[#747775] mt-0.5 flex flex-wrap items-center gap-1.5">
+                          <span className="font-mono-num text-[#444746]" dir="ltr">
                             {formatAccountLoginIdentifier(acc)}
                           </span>
                           <span aria-hidden="true">·</span>
@@ -1042,23 +1042,23 @@ export function AccountsView({
                           </span>
                         </div>
                       </td>
-                      <td className="px-4 py-3 text-xs text-slate-700">
+                      <td className="px-4 py-3 text-xs text-[#444746]">
                         {acc.branchName}
                       </td>
-                      <td className="px-4 py-3 text-xs font-medium text-slate-800 whitespace-nowrap">
+                      <td className="px-4 py-3 text-xs font-medium text-[#1F1F1F] whitespace-nowrap">
                         {ROLE_LABEL_AR[acc.role]}
                       </td>
-                      <td className="px-4 py-3 text-xs text-slate-600 max-w-[300px]">
+                      <td className="px-4 py-3 text-xs text-[#444746] max-w-[300px]">
                         {summarizePermissions(acc)}
                       </td>
                       <td className="px-4 py-3 whitespace-nowrap">
                         {isActive ? (
-                          <span className="inline-flex items-center gap-1.5 text-xs font-medium text-emerald-700">
+                          <span className="inline-flex items-center gap-1.5 text-xs font-medium text-[#137333]">
                             <CheckCircle2 className="w-3.5 h-3.5" />
                             نشط
                           </span>
                         ) : (
-                          <span className="inline-flex items-center gap-1.5 text-xs font-medium text-amber-700">
+                          <span className="inline-flex items-center gap-1.5 text-xs font-medium text-[#B06000]">
                             <PauseCircle className="w-3.5 h-3.5" />
                             معلق
                           </span>
@@ -1077,14 +1077,14 @@ export function AccountsView({
                                 setBusyId(null);
                               }
                             }}
-                            className="px-2.5 py-1 rounded-md border border-slate-200 text-[11px] font-medium text-slate-600 hover:bg-slate-50 transition-colors cursor-pointer"
+                            className="px-2.5 py-1 rounded-lg border border-[#DADCE0] text-[11px] font-medium text-[#444746] hover:bg-[#F0F4F9] hover:text-[#1F1F1F] transition-colors cursor-pointer"
                           >
                             {isActive ? 'تعليق' : 'تفعيل'}
                           </button>
                           <button
                             type="button"
                             onClick={() => onEditAccount(acc)}
-                            className="p-1.5 rounded-md text-slate-500 hover:text-slate-900 hover:bg-slate-100 transition-colors cursor-pointer"
+                            className="p-1.5 rounded-lg text-[#444746] hover:text-[#0B57D0] hover:bg-[#E8F0FE] transition-colors cursor-pointer"
                             title="تعديل الصلاحيات"
                           >
                             <Pencil className="w-3.5 h-3.5" />
@@ -1100,7 +1100,7 @@ export function AccountsView({
                                 setBusyId(null);
                               }
                             }}
-                            className="p-1.5 rounded-md text-slate-400 hover:text-red-700 hover:bg-red-50 transition-colors cursor-pointer"
+                            className="p-1.5 rounded-lg text-[#747775] hover:text-[#C5221F] hover:bg-[#FCE8E6] transition-colors cursor-pointer"
                             title="حذف الحساب"
                           >
                             <Trash2 className="w-3.5 h-3.5" />

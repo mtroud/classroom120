@@ -75,6 +75,7 @@ export function ScheduleGrid({
   }, [nowTick]);
 
   const nowMinutes = nowTick.getHours() * 60 + nowTick.getMinutes();
+  const currentHourPrefix = `${String(nowTick.getHours()).padStart(2, '0')}:00`;
 
   const weekDates = useMemo(() => getWeekDates(selectedDate), [selectedDate]);
   const monthCells = useMemo(() => getMonthCalendarCells(selectedDate), [selectedDate]);
@@ -251,27 +252,27 @@ export function ScheduleGrid({
 
   if (isLoading) {
     return (
-      <div className="bg-white border border-slate-200 rounded-xl p-6 space-y-4">
-        <div className="h-8 bg-slate-100 rounded-lg w-64" />
-        <div className="h-96 bg-slate-50 border border-slate-100 rounded-lg" />
+      <div className="bg-white border border-[#DADCE0] rounded-2xl p-6 space-y-4">
+        <div className="h-8 bg-[#F0F4F9] rounded-xl w-64" />
+        <div className="h-96 bg-[#F8FAFD] border border-[#E8EAED] rounded-xl" />
       </div>
     );
   }
 
   return (
     <section className="space-y-4">
-      {/* Toolbar */}
-      <div className="bg-white border border-slate-200 rounded-xl p-4 flex flex-col lg:flex-row lg:items-center justify-between gap-4 no-print">
+      {/* Google Calendar-Inspired Toolbar */}
+      <div className="bg-white border border-[#DADCE0] rounded-2xl p-4 flex flex-col lg:flex-row lg:items-center justify-between gap-4 no-print">
         <div className="flex flex-wrap items-center gap-3">
           {/* Segmented View Switch */}
-          <div className="inline-flex items-center p-1 bg-slate-100 rounded-lg">
+          <div className="inline-flex items-center p-1 bg-[#F0F4F9] rounded-xl">
             <button
               type="button"
               onClick={() => setMode('daily')}
-              className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors whitespace-nowrap shrink-0 cursor-pointer ${
+              className={`px-3.5 py-1.5 text-xs rounded-lg transition-colors whitespace-nowrap shrink-0 cursor-pointer ${
                 mode === 'daily'
-                  ? 'bg-white text-slate-900 shadow-sm'
-                  : 'text-slate-600 hover:text-slate-900'
+                  ? 'bg-white text-[#0B57D0] font-semibold g-elevation-1'
+                  : 'text-[#444746] font-medium hover:text-[#1F1F1F]'
               }`}
             >
               الجدول اليومي
@@ -279,10 +280,10 @@ export function ScheduleGrid({
             <button
               type="button"
               onClick={() => setMode('weekly')}
-              className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors whitespace-nowrap shrink-0 cursor-pointer ${
+              className={`px-3.5 py-1.5 text-xs rounded-lg transition-colors whitespace-nowrap shrink-0 cursor-pointer ${
                 mode === 'weekly'
-                  ? 'bg-white text-slate-900 shadow-sm'
-                  : 'text-slate-600 hover:text-slate-900'
+                  ? 'bg-white text-[#0B57D0] font-semibold g-elevation-1'
+                  : 'text-[#444746] font-medium hover:text-[#1F1F1F]'
               }`}
             >
               الجدول الأسبوعي
@@ -290,10 +291,10 @@ export function ScheduleGrid({
             <button
               type="button"
               onClick={() => setMode('monthly')}
-              className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors whitespace-nowrap shrink-0 cursor-pointer ${
+              className={`px-3.5 py-1.5 text-xs rounded-lg transition-colors whitespace-nowrap shrink-0 cursor-pointer ${
                 mode === 'monthly'
-                  ? 'bg-white text-slate-900 shadow-sm'
-                  : 'text-slate-600 hover:text-slate-900'
+                  ? 'bg-white text-[#0B57D0] font-semibold g-elevation-1'
+                  : 'text-[#444746] font-medium hover:text-[#1F1F1F]'
               }`}
             >
               التقويم الشهري
@@ -301,11 +302,11 @@ export function ScheduleGrid({
           </div>
 
           {/* Date Stepper */}
-          <div className="flex items-center gap-1 border border-slate-200 rounded-lg p-1 bg-white">
+          <div className="flex items-center gap-1 border border-[#DADCE0] rounded-xl p-1 bg-white">
             <button
               type="button"
               onClick={() => handleStepPeriod(-1)}
-              className="p-1.5 rounded text-slate-600 hover:bg-slate-100 hover:text-slate-900 transition-colors cursor-pointer"
+              className="p-1.5 rounded-lg text-[#444746] hover:bg-[#F0F4F9] hover:text-[#1F1F1F] transition-colors cursor-pointer"
               aria-label={mode === 'monthly' ? 'الشهر السابق' : 'الفترة السابقة'}
             >
               <ChevronRight className="w-4 h-4" />
@@ -313,14 +314,14 @@ export function ScheduleGrid({
             <button
               type="button"
               onClick={() => onDateChange(todayISO)}
-              className="px-2.5 py-1 text-xs font-medium text-teal-800 hover:bg-teal-50 rounded transition-colors whitespace-nowrap shrink-0 cursor-pointer"
+              className="px-3 py-1 text-xs font-semibold text-[#0B57D0] hover:bg-[#E8F0FE] rounded-lg transition-colors whitespace-nowrap shrink-0 cursor-pointer"
             >
               اليوم
             </button>
             <button
               type="button"
               onClick={() => handleStepPeriod(1)}
-              className="p-1.5 rounded text-slate-600 hover:bg-slate-100 hover:text-slate-900 transition-colors cursor-pointer"
+              className="p-1.5 rounded-lg text-[#444746] hover:bg-[#F0F4F9] hover:text-[#1F1F1F] transition-colors cursor-pointer"
               aria-label={mode === 'monthly' ? 'الشهر التالي' : 'الفترة التالية'}
             >
               <ChevronLeft className="w-4 h-4" />
@@ -328,15 +329,15 @@ export function ScheduleGrid({
           </div>
 
           <div className="flex items-center gap-2">
-            <Calendar className="w-4 h-4 text-slate-400" />
+            <Calendar className="w-4 h-4 text-[#0B57D0]" />
             <input
               type="date"
               value={selectedDate}
               onChange={(e) => e.target.value && onDateChange(e.target.value)}
-              className="text-xs font-mono-num border border-slate-200 rounded-lg px-2.5 py-1.5 text-slate-800 focus:outline-none focus:border-teal-700"
+              className="text-xs font-mono-num border border-[#DADCE0] rounded-xl px-3 py-1.5 text-[#1F1F1F] bg-white focus:outline-none focus:border-[#0B57D0] focus:ring-2 focus:ring-[#0B57D0]/15"
               aria-label="تاريخ الجدول"
             />
-            <span className="hidden sm:inline text-sm font-medium text-slate-700">
+            <span className="hidden sm:inline text-sm font-medium text-[#1F1F1F]">
               {mode === 'daily'
                 ? formatArabicDate(selectedDate)
                 : mode === 'weekly'
@@ -353,7 +354,7 @@ export function ScheduleGrid({
             <select
               value={roomFilter}
               onChange={(e) => setRoomFilter(e.target.value)}
-              className="text-xs border border-slate-200 rounded-lg px-3 py-2 bg-white text-slate-800 focus:outline-none focus:border-teal-700"
+              className="text-xs border border-[#DADCE0] rounded-xl px-3 py-2 bg-white text-[#1F1F1F] focus:outline-none focus:border-[#0B57D0] focus:ring-2 focus:ring-[#0B57D0]/15 cursor-pointer"
               aria-label="تصفية حسب القاعة"
             >
               <option value="all">جميع القاعات ({classrooms.length})</option>
@@ -368,20 +369,20 @@ export function ScheduleGrid({
           <button
             type="button"
             onClick={() => window.print()}
-            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg border border-slate-200 bg-white text-xs font-medium text-slate-700 hover:bg-slate-50 transition-colors whitespace-nowrap shrink-0 cursor-pointer"
+            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl border border-[#DADCE0] bg-white text-xs font-medium text-[#1F1F1F] hover:bg-[#F0F4F9] transition-colors whitespace-nowrap shrink-0 cursor-pointer"
           >
-            <Printer className="w-4 h-4 text-slate-500" />
+            <Printer className="w-4 h-4 text-[#444746]" />
             <span>طباعة الجدول</span>
           </button>
         </div>
       </div>
 
       {/* Print header */}
-      <div className="hidden print:block mb-4 border-b border-slate-300 pb-3">
-        <h1 className="font-display text-xl font-bold text-slate-900">
+      <div className="hidden print:block mb-4 border-b border-[#DADCE0] pb-3">
+        <h1 className="font-display text-xl font-bold text-[#1F1F1F]">
           {reportHeaderTitle || 'جدول القاعات الدراسية — قسم مجمع سيد الشهداء (ع) الخدمي'}
         </h1>
-        <p className="text-sm text-slate-600 mt-1">
+        <p className="text-sm text-[#444746] mt-1">
           {mode === 'daily'
             ? formatArabicDate(selectedDate)
             : mode === 'weekly'
@@ -393,16 +394,16 @@ export function ScheduleGrid({
       {/* Field Follow-Up Imminent Alerts Banner (Next 60 Minutes) */}
       {imminentList.length > 0 && (
         <div
-          className="bg-amber-50/70 border border-amber-200 rounded-xl p-4 space-y-2.5 no-print"
+          className="bg-[#FEF7E0] border border-[#FDE293] rounded-2xl p-4 space-y-2.5 no-print"
           role="region"
           aria-label="تنبيهات المتابعة الميدانية خلال 60 دقيقة"
         >
           <div className="flex flex-wrap items-center justify-between gap-2">
-            <div className="flex items-center gap-2 text-xs font-semibold text-amber-900">
-              <BellRing className="w-4 h-4 text-amber-700 shrink-0" />
+            <div className="flex items-center gap-2 text-xs font-semibold text-[#B06000]">
+              <BellRing className="w-4 h-4 text-[#B06000] shrink-0" />
               <span>تنبيه المتابعة الميدانية: قاعات لديها حجز وشيك خلال 60 دقيقة</span>
             </div>
-            <span className="font-mono-num text-xs font-semibold text-amber-800">
+            <span className="font-mono-num text-xs font-semibold text-[#B06000]">
               {imminentList.length} {imminentList.length === 1 ? 'حجز وشيك' : 'حجوزات وشيكة'}
             </span>
           </div>
@@ -418,20 +419,20 @@ export function ScheduleGrid({
                   }
                   onSelectBooking(booking);
                 }}
-                className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white border border-amber-200 hover:border-amber-400 text-xs text-slate-900 transition-colors cursor-pointer whitespace-nowrap shrink-0"
+                className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-white border border-[#FDE293] hover:border-[#F9AB00] text-xs text-[#1F1F1F] transition-colors cursor-pointer whitespace-nowrap shrink-0"
               >
-                <BellRing className="w-3.5 h-3.5 text-amber-700 shrink-0" />
+                <BellRing className="w-3.5 h-3.5 text-[#B06000] shrink-0" />
                 <span className="font-semibold">{booking.roomName}</span>
-                <span aria-hidden="true" className="text-slate-300">
+                <span aria-hidden="true" className="text-[#DADCE0]">
                   ·
                 </span>
-                <span className="text-slate-600 truncate max-w-[180px]">
+                <span className="text-[#444746] truncate max-w-[180px]">
                   {booking.courseTitle}
                 </span>
-                <span aria-hidden="true" className="text-slate-300">
+                <span aria-hidden="true" className="text-[#DADCE0]">
                   ·
                 </span>
-                <span className="font-mono-num font-semibold text-amber-800">
+                <span className="font-mono-num font-semibold text-[#B06000]">
                   {minutesUntil === 0 ? 'يبدأ الآن' : `بعد ${minutesUntil} د`}
                 </span>
               </button>
@@ -441,22 +442,22 @@ export function ScheduleGrid({
       )}
 
       {classrooms.length === 0 ? (
-        <div className="bg-white border border-slate-200 rounded-xl p-12 text-center">
-          <p className="text-sm font-medium text-slate-700">
+        <div className="bg-white border border-[#DADCE0] rounded-2xl p-12 text-center">
+          <p className="text-sm font-medium text-[#1F1F1F]">
             لا توجد قاعات مضافة في النظام حتى الآن.
           </p>
-          <p className="text-xs text-slate-500 mt-1">
+          <p className="text-xs text-[#444746] mt-1">
             يمكن لمدير القسم إضافة القاعات المجهزة من تبويب القاعات المجهزة.
           </p>
         </div>
       ) : mode === 'daily' ? (
         /* Daily Room x Hour Matrix */
-        <div className="bg-white border border-slate-200 rounded-xl overflow-hidden">
+        <div className="bg-white border border-[#DADCE0] rounded-2xl overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full border-collapse min-w-[780px]">
               <thead>
-                <tr className="bg-slate-50 border-b border-slate-200">
-                  <th className="w-28 px-4 py-3 text-right text-xs font-semibold text-slate-600 border-l border-slate-200">
+                <tr className="bg-[#F8FAFD] border-b border-[#DADCE0]">
+                  <th className="w-28 px-4 py-3.5 text-right text-xs font-semibold text-[#444746] border-l border-[#DADCE0]">
                     الساعة
                   </th>
                   {classrooms.map((room) => {
@@ -464,20 +465,20 @@ export function ScheduleGrid({
                     return (
                       <th
                         key={room.id}
-                        className={`px-4 py-3 text-right border-l last:border-l-0 border-slate-200 min-w-[210px] ${
-                          imminent ? 'bg-amber-50/50' : ''
+                        className={`px-4 py-3.5 text-right border-l last:border-l-0 border-[#DADCE0] min-w-[210px] ${
+                          imminent ? 'bg-[#FEF7E0]/60' : ''
                         }`}
                       >
                         <div className="flex items-center justify-between gap-2">
                           <div className="flex items-center gap-1.5 min-w-0">
-                            <span className="font-display text-sm font-bold text-slate-900 truncate">
+                            <span className="font-display text-sm font-bold text-[#1F1F1F] truncate">
                               {room.name}
                             </span>
                             {imminent && (
                               <button
                                 type="button"
                                 onClick={() => onSelectBooking(imminent.booking)}
-                                className="inline-flex items-center justify-center p-1 rounded-md bg-amber-100 text-amber-800 hover:bg-amber-200 transition-colors shrink-0 cursor-pointer no-print"
+                                className="inline-flex items-center justify-center p-1 rounded-lg bg-[#FEF7E0] border border-[#FDE293] text-[#B06000] hover:bg-[#FDE293]/50 transition-colors shrink-0 cursor-pointer no-print"
                                 title={`تنبيه حجز وشيك خلال ${imminent.minutesUntil} دقيقة: ${imminent.booking.courseTitle}`}
                                 aria-label={`تنبيه متابعة ميدانية لقاعة ${room.name}: حجز وشيك خلال ${imminent.minutesUntil} دقيقة`}
                               >
@@ -485,25 +486,25 @@ export function ScheduleGrid({
                               </button>
                             )}
                           </div>
-                          <span className="font-mono-num text-[11px] text-slate-500 shrink-0">
+                          <span className="font-mono-num text-[11px] font-medium text-[#0B57D0] shrink-0">
                             {room.code}
                           </span>
                         </div>
-                        <div className="text-[11px] text-slate-500 font-normal mt-0.5 flex flex-wrap items-center gap-1.5">
+                        <div className="text-[11px] text-[#444746] font-normal mt-0.5 flex flex-wrap items-center gap-1.5">
                           <span>{room.capacity} مقعد</span>
                           <span aria-hidden="true">·</span>
                           {room.status === 'maintenance' ? (
-                            <span className="text-red-700 inline-flex items-center gap-1">
+                            <span className="text-[#C5221F] font-medium inline-flex items-center gap-1">
                               <Wrench className="w-3 h-3" />
                               قيد الصيانة
                             </span>
                           ) : (
-                            <span className="text-teal-800">جاهزة</span>
+                            <span className="text-[#137333] font-medium">جاهزة</span>
                           )}
                           {imminent && (
                             <>
                               <span aria-hidden="true">·</span>
-                              <span className="font-mono-num font-semibold text-amber-800">
+                              <span className="font-mono-num font-semibold text-[#B06000]">
                                 {imminent.minutesUntil === 0
                                   ? 'حجز يبدأ الآن'
                                   : `حجز بعد ${imminent.minutesUntil} د`}
@@ -516,171 +517,186 @@ export function ScheduleGrid({
                   })}
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100">
-                {visibleTimelineHours.map((hour) => (
-                  <tr key={hour} className="hover:bg-slate-50/40 transition-colors">
-                    <td className="px-4 py-3 text-xs font-mono-num font-medium text-slate-600 border-l border-slate-200 bg-slate-50/40 whitespace-nowrap">
-                      {formatTime12Ar(hour)}
-                    </td>
-                    {classrooms.map((room) => {
-                      const booking = findBookingAtHour(room.id, hour);
-                      const isStartSlot =
-                        booking &&
-                        timeToMinutes(booking.startTime) >= timeToMinutes(hour) &&
-                        timeToMinutes(booking.startTime) < timeToMinutes(hour) + 60;
+              <tbody className="divide-y divide-[#E8EAED]">
+                {visibleTimelineHours.map((hour) => {
+                  const isCurrentHour =
+                    selectedDate === todayISO && hour === currentHourPrefix;
+                  return (
+                    <tr
+                      key={hour}
+                      className={`transition-colors ${
+                        isCurrentHour ? 'bg-[#E8F0FE]/25' : 'hover:bg-[#F8FAFD]'
+                      }`}
+                    >
+                      <td
+                        className={`px-4 py-3 text-xs font-mono-num font-medium border-l border-[#DADCE0] whitespace-nowrap ${
+                          isCurrentHour
+                            ? 'bg-[#E8F0FE] text-[#0B57D0] font-semibold'
+                            : 'bg-[#F8FAFD] text-[#444746]'
+                        }`}
+                      >
+                        {formatTime12Ar(hour)}
+                      </td>
+                      {classrooms.map((room) => {
+                        const booking = findBookingAtHour(room.id, hour);
+                        const isStartSlot =
+                          booking &&
+                          timeToMinutes(booking.startTime) >= timeToMinutes(hour) &&
+                          timeToMinutes(booking.startTime) < timeToMinutes(hour) + 60;
 
-                      if (booking) {
-                        const isConfirmed = booking.status === 'confirmed';
-                        const imminentMins = imminentBookingIds.get(booking.id);
+                        if (booking) {
+                          const isConfirmed = booking.status === 'confirmed';
+                          const imminentMins = imminentBookingIds.get(booking.id);
+                          return (
+                            <td
+                              key={room.id}
+                              className="p-1.5 border-l last:border-l-0 border-[#E8EAED] align-top"
+                            >
+                              <button
+                                type="button"
+                                onClick={() => onSelectBooking(booking)}
+                                className={`w-full text-right rounded-xl px-3 py-2 border transition-colors cursor-pointer ${
+                                  imminentMins !== undefined
+                                    ? 'bg-[#FCE8E6]/85 border-[#F6AEA9] hover:bg-[#FCE8E6]'
+                                    : isConfirmed
+                                    ? 'bg-[#E8F0FE] border-[#AECBFA] hover:bg-[#D3E3FD]/80'
+                                    : 'bg-[#FEF7E0] border-[#FDE293] hover:bg-[#FEF7E0]'
+                                }`}
+                              >
+                                {isStartSlot ? (
+                                  <>
+                                    <div className="flex items-center justify-between gap-2 text-[11px]">
+                                      <span className="font-mono-num text-[#444746]">
+                                        {formatTime12Ar(booking.startTime)} –{' '}
+                                        {formatTime12Ar(booking.endTime)}
+                                      </span>
+                                      <span
+                                        className={`inline-flex items-center gap-1 font-semibold ${
+                                          imminentMins !== undefined
+                                            ? 'text-[#C5221F]'
+                                            : isConfirmed
+                                            ? 'text-[#0B57D0]'
+                                            : 'text-[#B06000]'
+                                        }`}
+                                      >
+                                        {imminentMins !== undefined ? (
+                                          <BellRing className="w-3 h-3" />
+                                        ) : isConfirmed ? (
+                                          <CheckCircle2 className="w-3 h-3" />
+                                        ) : (
+                                          <Clock className="w-3 h-3" />
+                                        )}
+                                        {imminentMins !== undefined
+                                          ? imminentMins === 0
+                                            ? 'يبدأ الآن'
+                                            : `خلال ${imminentMins} د`
+                                          : BOOKING_STATUS_LABEL[booking.status]}
+                                      </span>
+                                    </div>
+                                    <div className="text-xs font-semibold text-[#1F1F1F] mt-1 line-clamp-1">
+                                      {booking.courseTitle}
+                                    </div>
+                                    <div className="text-[11px] text-[#444746] mt-0.5 line-clamp-1">
+                                      {booking.instructorName} · {booking.department}
+                                    </div>
+                                  </>
+                                ) : (
+                                  <div className="text-[11px] text-[#444746] flex items-center justify-between">
+                                    <span className="truncate font-medium text-[#1F1F1F]">
+                                      استمرار: {booking.courseTitle}
+                                    </span>
+                                    <span className="font-mono-num text-[10px] text-[#444746] shrink-0 mr-2">
+                                      حتى {formatTime12Ar(booking.endTime)}
+                                    </span>
+                                  </div>
+                                )}
+                              </button>
+                            </td>
+                          );
+                        }
+
+                        if (room.status === 'maintenance') {
+                          return (
+                            <td
+                              key={room.id}
+                              className="p-1.5 border-l last:border-l-0 border-[#E8EAED] bg-[#F8FAFD]"
+                            >
+                              <div className="px-3 py-2 text-[11px] text-[#747775]">
+                                متوقفة للصيانة
+                              </div>
+                            </td>
+                          );
+                        }
+
                         return (
                           <td
                             key={room.id}
-                            className="p-1.5 border-l last:border-l-0 border-slate-100 align-top"
+                            className="p-1.5 border-l last:border-l-0 border-[#E8EAED]"
                           >
-                            <button
-                              type="button"
-                              onClick={() => onSelectBooking(booking)}
-                              className={`w-full text-right rounded-lg px-3 py-2 border transition-colors cursor-pointer ${
-                                imminentMins !== undefined
-                                  ? 'bg-amber-50/90 border-amber-300 hover:bg-amber-50'
-                                  : isConfirmed
-                                  ? 'bg-teal-50/80 border-teal-200 hover:bg-teal-50'
-                                  : 'bg-amber-50/80 border-amber-200 hover:bg-amber-50'
-                              }`}
-                            >
-                              {isStartSlot ? (
-                                <>
-                                  <div className="flex items-center justify-between gap-2 text-[11px]">
-                                    <span className="font-mono-num text-slate-600">
-                                      {formatTime12Ar(booking.startTime)} –{' '}
-                                      {formatTime12Ar(booking.endTime)}
-                                    </span>
-                                    <span
-                                      className={`inline-flex items-center gap-1 font-medium ${
-                                        imminentMins !== undefined
-                                          ? 'text-amber-800'
-                                          : isConfirmed
-                                          ? 'text-teal-800'
-                                          : 'text-amber-800'
-                                      }`}
-                                    >
-                                      {imminentMins !== undefined ? (
-                                        <BellRing className="w-3 h-3" />
-                                      ) : isConfirmed ? (
-                                        <CheckCircle2 className="w-3 h-3" />
-                                      ) : (
-                                        <Clock className="w-3 h-3" />
-                                      )}
-                                      {imminentMins !== undefined
-                                        ? imminentMins === 0
-                                          ? 'يبدأ الآن'
-                                          : `خلال ${imminentMins} د`
-                                        : BOOKING_STATUS_LABEL[booking.status]}
-                                    </span>
-                                  </div>
-                                  <div className="text-xs font-semibold text-slate-900 mt-1 line-clamp-1">
-                                    {booking.courseTitle}
-                                  </div>
-                                  <div className="text-[11px] text-slate-600 mt-0.5 line-clamp-1">
-                                    {booking.instructorName} · {booking.department}
-                                  </div>
-                                </>
-                              ) : (
-                                <div className="text-[11px] text-slate-600 flex items-center justify-between">
-                                  <span className="truncate font-medium text-slate-800">
-                                    استمرار: {booking.courseTitle}
-                                  </span>
-                                  <span className="font-mono-num text-[10px] text-slate-500 shrink-0 mr-2">
-                                    حتى {formatTime12Ar(booking.endTime)}
-                                  </span>
-                                </div>
-                              )}
-                            </button>
+                            {canQuickBook ? (
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  onQuickBook(
+                                    room.id,
+                                    selectedDate,
+                                    hour,
+                                    nextHourString(hour)
+                                  )
+                                }
+                                className="w-full h-11 rounded-xl border border-transparent hover:border-dashed hover:border-[#0B57D0]/60 hover:bg-[#E8F0FE]/60 text-transparent hover:text-[#0B57D0] flex items-center justify-center gap-1 text-xs font-semibold transition-colors cursor-pointer group"
+                              >
+                                <Plus className="w-3.5 h-3.5" />
+                                <span>حجز الفترة</span>
+                              </button>
+                            ) : (
+                              <div className="h-11 flex items-center justify-center text-[11px] text-[#BDC1C6]">
+                                متاح
+                              </div>
+                            )}
                           </td>
                         );
-                      }
-
-                      if (room.status === 'maintenance') {
-                        return (
-                          <td
-                            key={room.id}
-                            className="p-1.5 border-l last:border-l-0 border-slate-100 bg-slate-50/70"
-                          >
-                            <div className="px-3 py-2 text-[11px] text-slate-400">
-                              متوقفة للصيانة
-                            </div>
-                          </td>
-                        );
-                      }
-
-                      return (
-                        <td
-                          key={room.id}
-                          className="p-1.5 border-l last:border-l-0 border-slate-100"
-                        >
-                          {canQuickBook ? (
-                            <button
-                              type="button"
-                              onClick={() =>
-                                onQuickBook(
-                                  room.id,
-                                  selectedDate,
-                                  hour,
-                                  nextHourString(hour)
-                                )
-                              }
-                              className="w-full h-11 rounded-lg border border-transparent hover:border-dashed hover:border-teal-400 hover:bg-teal-50/40 text-transparent hover:text-teal-800 flex items-center justify-center gap-1 text-xs font-medium transition-colors cursor-pointer group"
-                            >
-                              <Plus className="w-3.5 h-3.5" />
-                              <span>حجز الفترة</span>
-                            </button>
-                          ) : (
-                            <div className="h-11 flex items-center justify-center text-[11px] text-slate-300">
-                              متاح
-                            </div>
-                          )}
-                        </td>
-                      );
-                    })}
-                  </tr>
-                ))}
+                      })}
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
         </div>
       ) : mode === 'weekly' ? (
         /* Detailed Classroom x 7-Day Week View */
-        <div className="bg-white border border-slate-200 rounded-xl overflow-hidden">
+        <div className="bg-white border border-[#DADCE0] rounded-2xl overflow-hidden">
           {/* Week Summary Header */}
-          <div className="px-4 py-3 border-b border-slate-200 flex flex-wrap items-center justify-between gap-3 bg-slate-50/60">
-            <div className="flex flex-wrap items-center gap-2 text-xs text-slate-600">
-              <span className="font-display text-sm font-bold text-slate-900">
+          <div className="px-4 py-3.5 border-b border-[#DADCE0] flex flex-wrap items-center justify-between gap-3 bg-[#F8FAFD]">
+            <div className="flex flex-wrap items-center gap-2 text-xs text-[#444746]">
+              <span className="font-display text-sm font-bold text-[#1F1F1F]">
                 أسبوع: {formatShortArabicDate(weekDates[0])} — {formatShortArabicDate(weekDates[6])}
               </span>
-              <span aria-hidden="true" className="text-slate-300">
+              <span aria-hidden="true" className="text-[#DADCE0]">
                 ·
               </span>
               <span className="font-mono-num">
                 {weeklyStats.total} حجوزات ({weeklyStats.totalHours} س)
               </span>
-              <span aria-hidden="true" className="text-slate-300">
+              <span aria-hidden="true" className="text-[#DADCE0]">
                 ·
               </span>
-              <span className="font-mono-num text-teal-800">
+              <span className="font-mono-num text-[#137333] font-medium">
                 {weeklyStats.confirmed} موافق عليها
               </span>
               {weeklyStats.pending > 0 && (
                 <>
-                  <span aria-hidden="true" className="text-slate-300">
+                  <span aria-hidden="true" className="text-[#DADCE0]">
                     ·
                   </span>
-                  <span className="font-mono-num text-amber-700">
+                  <span className="font-mono-num text-[#B06000] font-medium">
                     {weeklyStats.pending} بانتظار الموافقة
                   </span>
                 </>
               )}
             </div>
-            <div className="text-[11px] text-slate-500 no-print">
+            <div className="text-[11px] text-[#747775] no-print">
               توزيع تفصيلي للحجوزات لكل قاعة · انقر على اسم اليوم لعرض جدوله الكامل
             </div>
           </div>
@@ -688,8 +704,8 @@ export function ScheduleGrid({
           <div className="overflow-x-auto">
             <table className="w-full border-collapse min-w-[1160px]">
               <thead>
-                <tr className="bg-slate-50 border-b border-slate-200">
-                  <th className="w-52 px-4 py-3 text-right text-xs font-semibold text-slate-700 border-l border-slate-200 bg-slate-50">
+                <tr className="bg-[#F8FAFD] border-b border-[#DADCE0]">
+                  <th className="w-52 px-4 py-3 text-right text-xs font-semibold text-[#444746] border-l border-[#DADCE0] bg-[#F8FAFD]">
                     القاعة الدراسية
                   </th>
                   {weekDates.map((dateISO) => {
@@ -697,8 +713,8 @@ export function ScheduleGrid({
                     return (
                       <th
                         key={dateISO}
-                        className={`px-3 py-2.5 text-right border-l last:border-l-0 border-slate-200 min-w-[148px] ${
-                          isToday ? 'bg-teal-50/70' : ''
+                        className={`px-3 py-2.5 text-right border-l last:border-l-0 border-[#DADCE0] min-w-[148px] ${
+                          isToday ? 'bg-[#E8F0FE]/70' : ''
                         }`}
                       >
                         <button
@@ -708,16 +724,16 @@ export function ScheduleGrid({
                           title="الانتقال إلى الجدول اليومي لهذا اليوم"
                         >
                           <div className="flex items-center justify-between gap-1">
-                            <span className="text-xs font-bold text-slate-900 group-hover/day:text-teal-800 transition-colors">
+                            <span className="text-xs font-bold text-[#1F1F1F] group-hover/day:text-[#0B57D0] transition-colors">
                               {formatShortArabicDate(dateISO)}
                             </span>
                             {isToday && (
-                              <span className="text-[10px] font-semibold text-teal-800">
+                              <span className="text-[10px] font-bold text-[#0B57D0]">
                                 اليوم
                               </span>
                             )}
                           </div>
-                          <div className="text-[11px] font-mono-num text-slate-500 font-normal mt-0.5">
+                          <div className="text-[11px] font-mono-num text-[#444746] font-normal mt-0.5">
                             {dateISO}
                           </div>
                         </button>
@@ -727,7 +743,7 @@ export function ScheduleGrid({
                 </tr>
               </thead>
 
-              <tbody className="divide-y divide-slate-200">
+              <tbody className="divide-y divide-[#DADCE0]">
                 {weeklyVisibleClassrooms.map((room) => {
                   const imminent = imminentByRoom.get(room.id);
                   const roomWeekStat = weeklyStatsByRoom.get(room.id) || { count: 0, hours: 0 };
@@ -735,20 +751,20 @@ export function ScheduleGrid({
                     <tr key={room.id} className="align-top">
                       {/* Classroom Column */}
                       <td
-                        className={`px-4 py-3 border-l border-slate-200 ${
-                          imminent ? 'bg-amber-50/40' : 'bg-slate-50/40'
+                        className={`px-4 py-3 border-l border-[#DADCE0] ${
+                          imminent ? 'bg-[#FEF7E0]/50' : 'bg-[#F8FAFD]'
                         }`}
                       >
                         <div className="flex items-center justify-between gap-2">
                           <div className="flex items-center gap-1.5 min-w-0">
-                            <span className="font-display text-xs font-bold text-slate-900 truncate">
+                            <span className="font-display text-xs font-bold text-[#1F1F1F] truncate">
                               {room.name}
                             </span>
                             {imminent && (
                               <button
                                 type="button"
                                 onClick={() => onSelectBooking(imminent.booking)}
-                                className="inline-flex items-center justify-center p-1 rounded-md bg-amber-100 text-amber-800 hover:bg-amber-200 transition-colors shrink-0 cursor-pointer no-print"
+                                className="inline-flex items-center justify-center p-1 rounded-lg bg-[#FEF7E0] border border-[#FDE293] text-[#B06000] hover:bg-[#FDE293]/60 transition-colors shrink-0 cursor-pointer no-print"
                                 title={`تنبيه حجز وشيك خلال ${imminent.minutesUntil} دقيقة: ${imminent.booking.courseTitle}`}
                                 aria-label={`تنبيه متابعة ميدانية لقاعة ${room.name}`}
                               >
@@ -756,25 +772,25 @@ export function ScheduleGrid({
                               </button>
                             )}
                           </div>
-                          <span className="font-mono-num text-[10px] text-slate-500 shrink-0">
+                          <span className="font-mono-num text-[10px] font-medium text-[#0B57D0] shrink-0">
                             {room.code}
                           </span>
                         </div>
 
-                        <div className="text-[11px] text-slate-500 mt-1 flex flex-wrap items-center gap-1">
+                        <div className="text-[11px] text-[#444746] mt-1 flex flex-wrap items-center gap-1">
                           <span>{room.capacity} مقعد</span>
                           <span aria-hidden="true">·</span>
                           {room.status === 'maintenance' ? (
-                            <span className="text-red-700 inline-flex items-center gap-1">
+                            <span className="text-[#C5221F] inline-flex items-center gap-1">
                               <Wrench className="w-3 h-3" />
                               صيانة
                             </span>
                           ) : (
-                            <span className="text-teal-800">جاهزة</span>
+                            <span className="text-[#137333]">جاهزة</span>
                           )}
                         </div>
 
-                        <div className="text-[11px] font-mono-num text-slate-600 mt-2 pt-2 border-t border-slate-200/70">
+                        <div className="text-[11px] font-mono-num text-[#444746] mt-2 pt-2 border-t border-[#E8EAED]">
                           {roomWeekStat.count} {roomWeekStat.count === 1 ? 'حجز' : 'حجوزات'} ·{' '}
                           {roomWeekStat.hours} س
                         </div>
@@ -788,8 +804,8 @@ export function ScheduleGrid({
                         return (
                           <td
                             key={dateISO}
-                            className={`p-2 border-l last:border-l-0 border-slate-100 align-top min-h-[110px] ${
-                              isToday ? 'bg-teal-50/20' : ''
+                            className={`p-2 border-l last:border-l-0 border-[#E8EAED] align-top min-h-[110px] ${
+                              isToday ? 'bg-[#E8F0FE]/25' : ''
                             }`}
                           >
                             <div className="space-y-1.5">
@@ -801,21 +817,21 @@ export function ScheduleGrid({
                                     key={b.id}
                                     type="button"
                                     onClick={() => onSelectBooking(b)}
-                                    className={`w-full text-right p-2 rounded-lg border transition-colors cursor-pointer ${
+                                    className={`w-full text-right p-2 rounded-xl border transition-colors cursor-pointer ${
                                       imminentMins !== undefined
-                                        ? 'bg-amber-50/90 border-amber-300 hover:border-amber-500'
+                                        ? 'bg-[#FCE8E6]/85 border-[#F6AEA9] hover:border-[#C5221F]'
                                         : isConfirmed
-                                        ? 'bg-teal-50/70 border-teal-200 hover:border-teal-400'
-                                        : 'bg-amber-50/70 border-amber-200 hover:border-amber-400'
+                                        ? 'bg-[#E8F0FE] border-[#AECBFA] hover:border-[#0B57D0]'
+                                        : 'bg-[#FEF7E0] border-[#FDE293] hover:border-[#B06000]'
                                     }`}
                                   >
                                     <div className="flex items-center justify-between gap-1 text-[10px] font-mono-num font-medium">
-                                      <span className="text-teal-900">
+                                      <span className="text-[#041E49]">
                                         {formatTime12Ar(b.startTime)} –{' '}
                                         {formatTime12Ar(b.endTime)}
                                       </span>
                                       {imminentMins !== undefined ? (
-                                        <span className="inline-flex items-center gap-0.5 text-amber-800 font-semibold shrink-0">
+                                        <span className="inline-flex items-center gap-0.5 text-[#C5221F] font-semibold shrink-0">
                                           <BellRing className="w-2.5 h-2.5" />
                                           <span>
                                             {imminentMins === 0 ? 'الآن' : `${imminentMins} د`}
@@ -823,21 +839,21 @@ export function ScheduleGrid({
                                         </span>
                                       ) : (
                                         <span
-                                          className={`shrink-0 ${
-                                            isConfirmed ? 'text-teal-800' : 'text-amber-800'
+                                          className={`shrink-0 font-semibold ${
+                                            isConfirmed ? 'text-[#0B57D0]' : 'text-[#B06000]'
                                           }`}
                                         >
                                           {isConfirmed ? 'معتمد' : 'مراجعة'}
                                         </span>
                                       )}
                                     </div>
-                                    <div className="text-xs font-semibold text-slate-900 mt-1 line-clamp-2">
+                                    <div className="text-xs font-semibold text-[#1F1F1F] mt-1 line-clamp-2">
                                       {b.courseTitle}
                                     </div>
-                                    <div className="text-[11px] text-slate-600 mt-0.5 truncate">
+                                    <div className="text-[11px] text-[#444746] mt-0.5 truncate">
                                       {b.instructorName}
                                     </div>
-                                    <div className="text-[10px] text-slate-500 mt-0.5 truncate">
+                                    <div className="text-[10px] text-[#747775] mt-0.5 truncate">
                                       {b.department} · {BOOKING_TYPE_LABEL[b.bookingType]}
                                     </div>
                                   </button>
@@ -846,7 +862,7 @@ export function ScheduleGrid({
 
                               {room.status === 'maintenance' ? (
                                 cellList.length === 0 && (
-                                  <div className="py-4 text-center text-[11px] text-slate-400">
+                                  <div className="py-4 text-center text-[11px] text-[#747775]">
                                     صيانة
                                   </div>
                                 )
@@ -856,7 +872,7 @@ export function ScheduleGrid({
                                   onClick={() =>
                                     onQuickBook(room.id, dateISO, '09:00', '11:00')
                                   }
-                                  className={`w-full rounded-lg border border-transparent hover:border-dashed hover:border-teal-400 hover:bg-teal-50/40 text-slate-400 hover:text-teal-800 flex items-center justify-center gap-1 text-[11px] font-medium transition-colors cursor-pointer no-print ${
+                                  className={`w-full rounded-xl border border-transparent hover:border-dashed hover:border-[#0B57D0]/60 hover:bg-[#E8F0FE]/60 text-[#747775] hover:text-[#0B57D0] flex items-center justify-center gap-1 text-[11px] font-medium transition-colors cursor-pointer no-print ${
                                     cellList.length === 0 ? 'py-5' : 'py-1.5'
                                   }`}
                                   title={`إضافة حجز في ${room.name} يوم ${dateISO}`}
@@ -866,7 +882,7 @@ export function ScheduleGrid({
                                 </button>
                               ) : (
                                 cellList.length === 0 && (
-                                  <div className="py-4 text-center text-[11px] text-slate-300">
+                                  <div className="py-4 text-center text-[11px] text-[#BDC1C6]">
                                     متاح
                                   </div>
                                 )
@@ -883,38 +899,38 @@ export function ScheduleGrid({
           </div>
         </div>
       ) : (
-        /* Monthly Calendar View */
-        <div className="bg-white border border-slate-200 rounded-xl overflow-hidden">
+        /* Monthly Calendar View (Google Calendar Inspired) */
+        <div className="bg-white border border-[#DADCE0] rounded-2xl overflow-hidden">
           {/* Month Summary Header */}
-          <div className="px-4 py-3 border-b border-slate-200 flex flex-wrap items-center justify-between gap-3 bg-slate-50/60">
-            <div className="flex flex-wrap items-center gap-2 text-xs text-slate-600">
-              <span className="font-display text-sm font-bold text-slate-900">
+          <div className="px-4 py-3.5 border-b border-[#DADCE0] flex flex-wrap items-center justify-between gap-3 bg-[#F8FAFD]">
+            <div className="flex flex-wrap items-center gap-2 text-xs text-[#444746]">
+              <span className="font-display text-sm font-bold text-[#1F1F1F]">
                 {formatArabicMonthYear(selectedDate)}
               </span>
-              <span aria-hidden="true" className="text-slate-300">
+              <span aria-hidden="true" className="text-[#DADCE0]">
                 ·
               </span>
               <span className="font-mono-num">
                 {currentMonthStats.total} حجوزات في الشهر
               </span>
-              <span aria-hidden="true" className="text-slate-300">
+              <span aria-hidden="true" className="text-[#DADCE0]">
                 ·
               </span>
-              <span className="font-mono-num text-teal-800">
+              <span className="font-mono-num text-[#137333] font-medium">
                 {currentMonthStats.confirmed} موافق عليها
               </span>
               {currentMonthStats.pending > 0 && (
                 <>
-                  <span aria-hidden="true" className="text-slate-300">
+                  <span aria-hidden="true" className="text-[#DADCE0]">
                     ·
                   </span>
-                  <span className="font-mono-num text-amber-700">
+                  <span className="font-mono-num text-[#B06000] font-medium">
                     {currentMonthStats.pending} بانتظار الموافقة
                   </span>
                 </>
               )}
             </div>
-            <div className="text-[11px] text-slate-500 no-print">
+            <div className="text-[11px] text-[#747775] no-print">
               انقر على أي يوم للانتقال إلى الجدول اليومي
             </div>
           </div>
@@ -922,11 +938,11 @@ export function ScheduleGrid({
           <div className="overflow-x-auto">
             <div className="min-w-[820px]">
               {/* 7-Day Weekday Headers */}
-              <div className="grid grid-cols-7 bg-slate-50 border-b border-slate-200">
+              <div className="grid grid-cols-7 bg-[#F8FAFD] border-b border-[#DADCE0]">
                 {ARABIC_WEEKDAYS_SAT_START.map((dayName) => (
                   <div
                     key={dayName}
-                    className="px-3 py-2.5 text-center text-xs font-semibold text-slate-600 border-l last:border-l-0 border-slate-200"
+                    className="px-3 py-2.5 text-center text-xs font-semibold text-[#444746] border-l last:border-l-0 border-[#DADCE0]"
                   >
                     {dayName}
                   </div>
@@ -947,15 +963,15 @@ export function ScheduleGrid({
                     <div
                       key={cell.dateISO}
                       onClick={() => handleOpenDaySchedule(cell.dateISO)}
-                      className={`group min-h-[132px] p-2 border-l border-b border-slate-200 [&:nth-child(7n)]:border-l-0 ${
+                      className={`group min-h-[132px] p-2 border-l border-b border-[#DADCE0] [&:nth-child(7n)]:border-l-0 ${
                         isLastRow ? 'border-b-0' : ''
                       } flex flex-col transition-colors cursor-pointer ${
                         isToday
-                          ? 'bg-teal-50/40 hover:bg-teal-50/70'
+                          ? 'bg-[#E8F0FE]/45 hover:bg-[#E8F0FE]/75'
                           : cell.isCurrentMonth
-                          ? 'bg-white hover:bg-slate-50/70'
-                          : 'bg-slate-50/60 hover:bg-slate-100/60'
-                      } ${isSelected ? 'ring-1 ring-inset ring-teal-600' : ''}`}
+                          ? 'bg-white hover:bg-[#F8FAFD]'
+                          : 'bg-[#F0F4F9]/60 hover:bg-[#F0F4F9]'
+                      } ${isSelected ? 'ring-1 ring-inset ring-[#0B57D0]' : ''}`}
                     >
                       {/* Cell Header: Day Number + Count + Quick Add */}
                       <div className="flex items-center justify-between gap-1 mb-1.5">
@@ -967,16 +983,16 @@ export function ScheduleGrid({
                           }}
                           className={`inline-flex items-center gap-1.5 text-xs font-mono-num font-semibold transition-colors cursor-pointer ${
                             isToday
-                              ? 'text-teal-800'
+                              ? 'text-[#0B57D0]'
                               : cell.isCurrentMonth
-                              ? 'text-slate-900 hover:text-teal-800'
-                              : 'text-slate-400 hover:text-slate-700'
+                              ? 'text-[#1F1F1F] hover:text-[#0B57D0]'
+                              : 'text-[#747775] hover:text-[#1F1F1F]'
                           }`}
                           aria-label={`عرض الجدول اليومي ليوم ${formatArabicDate(cell.dateISO)}`}
                         >
                           <span>{cell.dayNumber}</span>
                           {isToday && (
-                            <span className="font-sans text-[10px] font-medium text-teal-800">
+                            <span className="font-sans text-[10px] font-bold text-[#0B57D0]">
                               اليوم
                             </span>
                           )}
@@ -984,7 +1000,7 @@ export function ScheduleGrid({
 
                         <div className="flex items-center gap-1">
                           {list.length > 0 && (
-                            <span className="text-[10px] font-mono-num text-slate-400">
+                            <span className="text-[10px] font-mono-num text-[#747775]">
                               {list.length}
                             </span>
                           )}
@@ -1002,7 +1018,7 @@ export function ScheduleGrid({
                                   '11:00'
                                 );
                               }}
-                              className="p-1 rounded text-slate-400 opacity-0 group-hover:opacity-100 focus:opacity-100 hover:text-teal-800 hover:bg-white transition-all cursor-pointer no-print"
+                              className="p-1 rounded-lg text-[#444746] opacity-0 group-hover:opacity-100 focus:opacity-100 hover:text-[#0B57D0] hover:bg-white transition-all cursor-pointer no-print"
                               title="إضافة حجز في هذا اليوم"
                               aria-label={`إضافة حجز في ${cell.dateISO}`}
                             >
@@ -1025,40 +1041,40 @@ export function ScheduleGrid({
                                 e.stopPropagation();
                                 onSelectBooking(b);
                               }}
-                              className={`w-full text-right px-2 py-1 rounded-md border text-[11px] transition-colors cursor-pointer block ${
+                              className={`w-full text-right px-2 py-1 rounded-lg border text-[11px] transition-colors cursor-pointer block ${
                                 imminentMins !== undefined
-                                  ? 'bg-amber-50/90 border-amber-300 text-slate-900 hover:bg-amber-100/70'
+                                  ? 'bg-[#FCE8E6]/90 border-[#F6AEA9] text-[#1F1F1F] hover:bg-[#FCE8E6]'
                                   : isConfirmed
-                                  ? 'bg-teal-50/80 border-teal-200 text-slate-900 hover:bg-teal-100/70'
-                                  : 'bg-amber-50/80 border-amber-200 text-slate-900 hover:bg-amber-100/70'
+                                  ? 'bg-[#E8F0FE] border-[#AECBFA] text-[#1F1F1F] hover:bg-[#D3E3FD]/80'
+                                  : 'bg-[#FEF7E0] border-[#FDE293] text-[#1F1F1F] hover:bg-[#FEF7E0]'
                               }`}
                               title={`${b.courseTitle} — ${b.roomName} (${formatTime12Ar(
                                 b.startTime
                               )} – ${formatTime12Ar(b.endTime)})`}
                             >
                               <div className="flex items-center justify-between gap-1">
-                                <span className="font-mono-num text-[10px] text-slate-600 shrink-0">
+                                <span className="font-mono-num text-[10px] text-[#444746] shrink-0">
                                   {formatTime12Ar(b.startTime)}
                                 </span>
                                 {imminentMins !== undefined ? (
-                                  <span className="inline-flex items-center gap-0.5 text-[10px] font-semibold text-amber-800 shrink-0">
+                                  <span className="inline-flex items-center gap-0.5 text-[10px] font-semibold text-[#C5221F] shrink-0">
                                     <BellRing className="w-2.5 h-2.5" />
                                     <span>{imminentMins === 0 ? 'الآن' : `${imminentMins} د`}</span>
                                   </span>
                                 ) : (
                                   <span
-                                    className={`text-[10px] font-medium shrink-0 ${
-                                      isConfirmed ? 'text-teal-800' : 'text-amber-800'
+                                    className={`text-[10px] font-semibold shrink-0 ${
+                                      isConfirmed ? 'text-[#0B57D0]' : 'text-[#B06000]'
                                     }`}
                                   >
                                     {isConfirmed ? 'معتمد' : 'مراجعة'}
                                   </span>
                                 )}
                               </div>
-                              <div className="font-semibold text-slate-900 truncate mt-0.5">
+                              <div className="font-semibold text-[#1F1F1F] truncate mt-0.5">
                                 {b.courseTitle}
                               </div>
-                              <div className="text-[10px] text-slate-500 truncate">
+                              <div className="text-[10px] text-[#444746] truncate">
                                 {b.roomName}
                               </div>
                             </button>
@@ -1072,7 +1088,7 @@ export function ScheduleGrid({
                               e.stopPropagation();
                               handleOpenDaySchedule(cell.dateISO);
                             }}
-                            className="w-full text-right px-2 py-1 text-[11px] font-medium text-teal-800 hover:text-teal-900 hover:bg-teal-50/60 rounded-md transition-colors cursor-pointer"
+                            className="w-full text-right px-2 py-1 text-[11px] font-semibold text-[#0B57D0] hover:bg-[#E8F0FE]/70 rounded-lg transition-colors cursor-pointer"
                           >
                             + {hiddenCount} حجوزات أخرى · عرض اليوم
                           </button>

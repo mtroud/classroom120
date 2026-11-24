@@ -310,14 +310,14 @@ export function SettingsView({
     <section className="space-y-6">
       {/* Header */}
       <div className="flex items-start gap-3">
-        <div className="w-10 h-10 rounded-lg bg-teal-50 border border-teal-200 flex items-center justify-center shrink-0 text-teal-800">
+        <div className="w-10 h-10 rounded-xl bg-[#E8F0FE] border border-[#AECBFA] flex items-center justify-center shrink-0 text-[#0B57D0]">
           <SettingsIcon className="w-5 h-5" />
         </div>
         <div>
-          <h2 className="font-display text-lg font-bold text-slate-900">
+          <h2 className="font-display text-lg font-bold text-[#1F1F1F]">
             إعدادات المنظومة والنسخ الاحتياطي
           </h2>
-          <p className="text-xs text-slate-500 mt-0.5">
+          <p className="text-xs text-[#747775] mt-0.5">
             تخصيص سياسات التشغيل وساعات الدوام وتصدير واستعادة النسخ الاحتياطية الشاملة لقاعدة البيانات
           </p>
         </div>
@@ -327,26 +327,26 @@ export function SettingsView({
         {/* System & Policy Settings Form */}
         <form
           onSubmit={handleSaveSubmit}
-          className="xl:col-span-7 bg-white border border-slate-200 rounded-xl p-6 space-y-5"
+          className="xl:col-span-7 bg-white border border-[#DADCE0] rounded-2xl p-6 space-y-5"
         >
-          <div className="border-b border-slate-100 pb-3">
-            <h3 className="font-display text-base font-bold text-slate-900">
+          <div className="border-b border-[#E8EAED] pb-3">
+            <h3 className="font-display text-base font-bold text-[#1F1F1F]">
               إعدادات التشغيل وسياسة الحجوزات
             </h3>
-            <p className="text-xs text-slate-500 mt-0.5">
+            <p className="text-xs text-[#747775] mt-0.5">
               تنعكس هذه الإعدادات مباشرة على الجدول الدراسي، ترويسة التقارير، وصلاحيات الحجز
             </p>
           </div>
 
           {errorMsg && (
-            <div className="bg-red-50 border border-red-200 rounded-lg px-4 py-3 text-xs text-red-800 flex items-center gap-2">
+            <div className="bg-[#FCE8E6] border border-[#F6AEA9] rounded-xl px-4 py-3 text-xs text-[#C5221F] flex items-center gap-2">
               <AlertCircle className="w-4 h-4 shrink-0" />
               <span>{errorMsg}</span>
             </div>
           )}
 
           {successMsg && (
-            <div className="bg-emerald-50 border border-emerald-200 rounded-lg px-4 py-3 text-xs text-emerald-800 flex items-center gap-2">
+            <div className="bg-[#E6F4EA] border border-[#CEEAD6] rounded-xl px-4 py-3 text-xs text-[#137333] flex items-center gap-2">
               <CheckCircle2 className="w-4 h-4 shrink-0" />
               <span>{successMsg}</span>
             </div>
@@ -354,7 +354,7 @@ export function SettingsView({
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs font-medium text-slate-700 mb-1.5">
+              <label className="block text-xs font-medium text-[#444746] mb-1.5">
                 اسم القسم / المجمع الرئيسي
               </label>
               <input
@@ -364,13 +364,13 @@ export function SettingsView({
                 onChange={(e) =>
                   setForm({ ...form, organizationName: e.target.value })
                 }
-                className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 focus:outline-none focus:border-teal-700"
+                className="w-full rounded-xl border border-[#DADCE0] bg-white px-3 py-2 text-sm text-[#1F1F1F] focus:outline-none focus:border-[#0B57D0] focus:ring-2 focus:ring-[#0B57D0]/15"
                 required
               />
             </div>
 
             <div>
-              <label className="block text-xs font-medium text-slate-700 mb-1.5">
+              <label className="block text-xs font-medium text-[#444746] mb-1.5">
                 العنوان الفرعي للمنظومة
               </label>
               <input
@@ -380,13 +380,13 @@ export function SettingsView({
                 onChange={(e) =>
                   setForm({ ...form, complexSubtitle: e.target.value })
                 }
-                className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 focus:outline-none focus:border-teal-700"
+                className="w-full rounded-xl border border-[#DADCE0] bg-white px-3 py-2 text-sm text-[#1F1F1F] focus:outline-none focus:border-[#0B57D0] focus:ring-2 focus:ring-[#0B57D0]/15"
                 required
               />
             </div>
 
             <div>
-              <label className="block text-xs font-medium text-slate-700 mb-1.5">
+              <label className="block text-xs font-medium text-[#444746] mb-1.5">
                 بداية الدوام اليومي للقاعات
               </label>
               <input
@@ -395,13 +395,13 @@ export function SettingsView({
                 onChange={(e) =>
                   setForm({ ...form, workStartHour: e.target.value })
                 }
-                className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-mono-num text-slate-900 focus:outline-none focus:border-teal-700"
+                className="w-full rounded-xl border border-[#DADCE0] bg-white px-3 py-2 text-sm font-mono-num text-[#1F1F1F] focus:outline-none focus:border-[#0B57D0] focus:ring-2 focus:ring-[#0B57D0]/15"
                 required
               />
             </div>
 
             <div>
-              <label className="block text-xs font-medium text-slate-700 mb-1.5">
+              <label className="block text-xs font-medium text-[#444746] mb-1.5">
                 نهاية الدوام اليومي للقاعات
               </label>
               <input
@@ -410,13 +410,13 @@ export function SettingsView({
                 onChange={(e) =>
                   setForm({ ...form, workEndHour: e.target.value })
                 }
-                className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-mono-num text-slate-900 focus:outline-none focus:border-teal-700"
+                className="w-full rounded-xl border border-[#DADCE0] bg-white px-3 py-2 text-sm font-mono-num text-[#1F1F1F] focus:outline-none focus:border-[#0B57D0] focus:ring-2 focus:ring-[#0B57D0]/15"
                 required
               />
             </div>
 
             <div className="sm:col-span-2">
-              <label className="block text-xs font-medium text-slate-700 mb-1.5">
+              <label className="block text-xs font-medium text-[#444746] mb-1.5">
                 أقصى مدة مسموحة للحجز المسبق (بالأيام)
               </label>
               <input
@@ -430,13 +430,13 @@ export function SettingsView({
                     maxAdvanceDays: Number(e.target.value) || 30,
                   })
                 }
-                className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-mono-num text-slate-900 focus:outline-none focus:border-teal-700"
+                className="w-full rounded-xl border border-[#DADCE0] bg-white px-3 py-2 text-sm font-mono-num text-[#1F1F1F] focus:outline-none focus:border-[#0B57D0] focus:ring-2 focus:ring-[#0B57D0]/15"
                 required
               />
             </div>
 
             <div className="sm:col-span-2">
-              <label className="block text-xs font-medium text-slate-700 mb-1.5">
+              <label className="block text-xs font-medium text-[#444746] mb-1.5">
                 ترويسة التقارير والطباعة الرسمية
               </label>
               <input
@@ -446,13 +446,13 @@ export function SettingsView({
                 onChange={(e) =>
                   setForm({ ...form, reportHeaderTitle: e.target.value })
                 }
-                className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 focus:outline-none focus:border-teal-700"
+                className="w-full rounded-xl border border-[#DADCE0] bg-white px-3 py-2 text-sm text-[#1F1F1F] focus:outline-none focus:border-[#0B57D0] focus:ring-2 focus:ring-[#0B57D0]/15"
                 required
               />
             </div>
 
             <div className="sm:col-span-2">
-              <label className="block text-xs font-medium text-slate-700 mb-1.5">
+              <label className="block text-xs font-medium text-[#444746] mb-1.5">
                 تذييل التقارير المطبوعة
               </label>
               <input
@@ -462,12 +462,12 @@ export function SettingsView({
                 onChange={(e) =>
                   setForm({ ...form, reportFooterNote: e.target.value })
                 }
-                className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 focus:outline-none focus:border-teal-700"
+                className="w-full rounded-xl border border-[#DADCE0] bg-white px-3 py-2 text-sm text-[#1F1F1F] focus:outline-none focus:border-[#0B57D0] focus:ring-2 focus:ring-[#0B57D0]/15"
               />
             </div>
           </div>
 
-          <div className="space-y-2.5 pt-2 border-t border-slate-100">
+          <div className="space-y-2.5 pt-2 border-t border-[#E8EAED]">
             <label className="flex items-start gap-2.5 cursor-pointer">
               <input
                 type="checkbox"
@@ -475,13 +475,13 @@ export function SettingsView({
                 onChange={(e) =>
                   setForm({ ...form, requireAdminApproval: e.target.checked })
                 }
-                className="mt-0.5 rounded border-slate-300 text-teal-700 focus:ring-teal-700"
+                className="mt-0.5 rounded border-[#DADCE0] text-[#0B57D0] focus:ring-[#0B57D0]"
               />
               <div>
-                <div className="text-xs font-semibold text-slate-900">
+                <div className="text-xs font-semibold text-[#1F1F1F]">
                   إخضاع طلبات الأقسام لموافقة الإدارة قبل التثبيت
                 </div>
-                <div className="text-[11px] text-slate-500">
+                <div className="text-[11px] text-[#747775]">
                   تبقى الطلبات الجديدة بحالة «بانتظار الموافقة» لحين اعتمادها من الإدارة أو الشعبة المخولة
                 </div>
               </div>
@@ -494,13 +494,13 @@ export function SettingsView({
                 onChange={(e) =>
                   setForm({ ...form, allowWeekendBookings: e.target.checked })
                 }
-                className="mt-0.5 rounded border-slate-300 text-teal-700 focus:ring-teal-700"
+                className="mt-0.5 rounded border-[#DADCE0] text-[#0B57D0] focus:ring-[#0B57D0]"
               />
               <div>
-                <div className="text-xs font-semibold text-slate-900">
+                <div className="text-xs font-semibold text-[#1F1F1F]">
                   السماح بتسجيل الدورات والحجوزات في عطلة نهاية الأسبوع
                 </div>
-                <div className="text-[11px] text-slate-500">
+                <div className="text-[11px] text-[#747775]">
                   إتاحة أيام الجمعة والسبت ضمن جدول القاعات للدورات المكثفة والندوات
                 </div>
               </div>
@@ -513,24 +513,24 @@ export function SettingsView({
                 onChange={(e) =>
                   setForm({ ...form, strictAccountAccess: e.target.checked })
                 }
-                className="mt-0.5 rounded border-slate-300 text-teal-700 focus:ring-teal-700"
+                className="mt-0.5 rounded border-[#DADCE0] text-[#0B57D0] focus:ring-[#0B57D0]"
               />
               <div>
-                <div className="text-xs font-semibold text-slate-900">
+                <div className="text-xs font-semibold text-[#1F1F1F]">
                   حصر الدخول على الحسابات المضافة في صفحة الصلاحيات فقط
                 </div>
-                <div className="text-[11px] text-slate-500">
+                <div className="text-[11px] text-[#747775]">
                   عند التفعيل، لا يُسمح لأي بريد إلكتروني غير مسجل بالوصول إلى المنظومة
                 </div>
               </div>
             </label>
           </div>
 
-          <div className="pt-4 border-t border-slate-100 flex justify-end">
+          <div className="pt-4 border-t border-[#E8EAED] flex justify-end">
             <button
               type="submit"
               disabled={saving}
-              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg bg-teal-700 text-white text-xs font-semibold hover:bg-teal-800 disabled:opacity-50 transition-colors cursor-pointer"
+              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#0B57D0] text-white text-xs font-semibold hover:bg-[#0842A0] g-elevation-1 disabled:opacity-50 transition-colors cursor-pointer"
             >
               <Save className="w-4 h-4" />
               <span>{saving ? 'جاري الحفظ...' : 'حفظ إعدادات المنظومة'}</span>
@@ -541,52 +541,52 @@ export function SettingsView({
         {/* Backup & Restore Column */}
         <div className="xl:col-span-5 space-y-5">
           {/* Backup Export Card */}
-          <div className="bg-white border border-slate-200 rounded-xl p-6 space-y-4">
+          <div className="bg-white border border-[#DADCE0] rounded-2xl p-6 space-y-4">
             <div className="flex items-start gap-3">
-              <div className="w-9 h-9 rounded-lg bg-slate-100 flex items-center justify-center shrink-0 text-slate-700">
+              <div className="w-9 h-9 rounded-xl bg-[#F0F4F9] border border-[#DADCE0] flex items-center justify-center shrink-0 text-[#0B57D0]">
                 <DatabaseBackup className="w-4 h-4" />
               </div>
               <div>
-                <h3 className="font-display text-base font-bold text-slate-900">
+                <h3 className="font-display text-base font-bold text-[#1F1F1F]">
                   النسخ الاحتياطي وتصدير البيانات
                 </h3>
-                <p className="text-xs text-slate-500 mt-0.5">
+                <p className="text-xs text-[#747775] mt-0.5">
                   احفظ نسخة احتياطية كاملة بصيغة JSON لاستعادتها مستقبلاً أو صدّر الجداول بصيغة CSV
                 </p>
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-3 text-xs border-y border-slate-100 py-3">
+            <div className="grid grid-cols-2 gap-3 text-xs border-y border-[#E8EAED] py-3">
               <div>
-                <span className="text-slate-500">القاعات المجهزة: </span>
-                <strong className="font-mono-num text-slate-900">
+                <span className="text-[#747775]">القاعات المجهزة: </span>
+                <strong className="font-mono-num text-[#1F1F1F]">
                   {classrooms.length}
                 </strong>
               </div>
               <div>
-                <span className="text-slate-500">الأقسام المعتمدة: </span>
-                <strong className="font-mono-num text-slate-900">
+                <span className="text-[#747775]">الأقسام المعتمدة: </span>
+                <strong className="font-mono-num text-[#1F1F1F]">
                   {departments.length}
                 </strong>
               </div>
               <div>
-                <span className="text-slate-500">سجل الحجوزات: </span>
-                <strong className="font-mono-num text-slate-900">
+                <span className="text-[#747775]">سجل الحجوزات: </span>
+                <strong className="font-mono-num text-[#1F1F1F]">
                   {bookings.length}
                 </strong>
               </div>
               <div>
-                <span className="text-slate-500">الحسابات المضافة: </span>
-                <strong className="font-mono-num text-slate-900">
+                <span className="text-[#747775]">الحسابات المضافة: </span>
+                <strong className="font-mono-num text-[#1F1F1F]">
                   {accounts.length}
                 </strong>
               </div>
             </div>
 
             {settings.lastBackupAt && (
-              <div className="text-[11px] text-slate-500">
+              <div className="text-[11px] text-[#747775]">
                 آخر نسخة احتياطية:{' '}
-                <span className="font-mono-num text-slate-800">
+                <span className="font-mono-num text-[#1F1F1F]">
                   {settings.lastBackupAt.slice(0, 16).replace('T', ' ')}
                 </span>
                 {settings.lastBackupBy ? ` · بواسطة ${settings.lastBackupBy}` : ''}
@@ -596,7 +596,7 @@ export function SettingsView({
             <button
               type="button"
               onClick={() => void handleExportJsonBackup()}
-              className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-slate-900 text-white text-xs font-semibold hover:bg-slate-800 transition-colors cursor-pointer"
+              className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-[#1F1F1F] text-white text-xs font-semibold hover:bg-[#333333] transition-colors cursor-pointer"
             >
               <Download className="w-4 h-4" />
               <span>تحميل نسخة احتياطية شاملة (JSON)</span>
@@ -606,50 +606,50 @@ export function SettingsView({
               <button
                 type="button"
                 onClick={handleExportClassroomsCsv}
-                className="inline-flex items-center justify-center gap-1 px-2.5 py-2 rounded-lg border border-slate-200 bg-white text-[11px] font-medium text-slate-700 hover:bg-slate-50 transition-colors cursor-pointer"
+                className="inline-flex items-center justify-center gap-1 px-2.5 py-2 rounded-xl border border-[#DADCE0] bg-white text-[11px] font-medium text-[#1F1F1F] hover:bg-[#F0F4F9] transition-colors cursor-pointer"
               >
-                <FileSpreadsheet className="w-3.5 h-3.5 text-slate-500" />
+                <FileSpreadsheet className="w-3.5 h-3.5 text-[#444746]" />
                 <span>القاعات CSV</span>
               </button>
               <button
                 type="button"
                 onClick={handleExportDepartmentsCsv}
-                className="inline-flex items-center justify-center gap-1 px-2.5 py-2 rounded-lg border border-slate-200 bg-white text-[11px] font-medium text-slate-700 hover:bg-slate-50 transition-colors cursor-pointer"
+                className="inline-flex items-center justify-center gap-1 px-2.5 py-2 rounded-xl border border-[#DADCE0] bg-white text-[11px] font-medium text-[#1F1F1F] hover:bg-[#F0F4F9] transition-colors cursor-pointer"
               >
-                <FileSpreadsheet className="w-3.5 h-3.5 text-slate-500" />
+                <FileSpreadsheet className="w-3.5 h-3.5 text-[#444746]" />
                 <span>الأقسام CSV</span>
               </button>
               <button
                 type="button"
                 onClick={() => exportBookingsToCsv(bookings)}
-                className="inline-flex items-center justify-center gap-1 px-2.5 py-2 rounded-lg border border-slate-200 bg-white text-[11px] font-medium text-slate-700 hover:bg-slate-50 transition-colors cursor-pointer"
+                className="inline-flex items-center justify-center gap-1 px-2.5 py-2 rounded-xl border border-[#DADCE0] bg-white text-[11px] font-medium text-[#1F1F1F] hover:bg-[#F0F4F9] transition-colors cursor-pointer"
               >
-                <FileSpreadsheet className="w-3.5 h-3.5 text-slate-500" />
+                <FileSpreadsheet className="w-3.5 h-3.5 text-[#444746]" />
                 <span>الحجوزات CSV</span>
               </button>
             </div>
           </div>
 
           {/* Restore Card */}
-          <div className="bg-white border border-slate-200 rounded-xl p-6 space-y-4">
+          <div className="bg-white border border-[#DADCE0] rounded-2xl p-6 space-y-4">
             <div>
-              <h3 className="font-display text-base font-bold text-slate-900">
+              <h3 className="font-display text-base font-bold text-[#1F1F1F]">
                 استعادة من نسخة احتياطية
               </h3>
-              <p className="text-xs text-slate-500 mt-0.5">
+              <p className="text-xs text-[#747775] mt-0.5">
                 ارفع ملف النسخة الاحتياطية (JSON) لمعاينة محتوياته ودمجه بأمان مع قاعدة البيانات
               </p>
             </div>
 
             {restoreError && (
-              <div className="bg-red-50 border border-red-200 rounded-lg px-3.5 py-2.5 text-xs text-red-800 flex items-center gap-2">
+              <div className="bg-[#FCE8E6] border border-[#F6AEA9] rounded-xl px-3.5 py-2.5 text-xs text-[#C5221F] flex items-center gap-2">
                 <AlertCircle className="w-4 h-4 shrink-0" />
                 <span>{restoreError}</span>
               </div>
             )}
 
             {restoreSuccess && (
-              <div className="bg-emerald-50 border border-emerald-200 rounded-lg px-3.5 py-2.5 text-xs text-emerald-800 flex items-center gap-2">
+              <div className="bg-[#E6F4EA] border border-[#CEEAD6] rounded-xl px-3.5 py-2.5 text-xs text-[#137333] flex items-center gap-2">
                 <CheckCircle2 className="w-4 h-4 shrink-0" />
                 <span>{restoreSuccess}</span>
               </div>
@@ -661,16 +661,16 @@ export function SettingsView({
                 type="file"
                 accept="application/json,.json"
                 onChange={handleBackupFileSelected}
-                className="block w-full text-xs text-slate-600 file:ml-3 file:py-2 file:px-3.5 file:rounded-lg file:border file:border-slate-200 file:text-xs file:font-semibold file:bg-slate-50 file:text-slate-700 hover:file:bg-slate-100 cursor-pointer"
+                className="block w-full text-xs text-[#444746] file:ml-3 file:py-2 file:px-3.5 file:rounded-xl file:border file:border-[#DADCE0] file:text-xs file:font-semibold file:bg-[#F0F4F9] file:text-[#1F1F1F] hover:file:bg-[#E8F0FE] cursor-pointer"
               />
             </div>
 
             {pendingRestore && (
-              <div className="bg-slate-50 border border-slate-200 rounded-lg p-4 space-y-3">
-                <div className="text-xs font-semibold text-slate-900">
+              <div className="bg-[#F8FAFD] border border-[#E8EAED] rounded-xl p-4 space-y-3">
+                <div className="text-xs font-semibold text-[#1F1F1F]">
                   معاينة محتويات الملف المختار:
                 </div>
-                <div className="text-xs text-slate-600 space-y-1 font-mono-num">
+                <div className="text-xs text-[#444746] space-y-1 font-mono-num">
                   <div>• القاعات الدراسية: {pendingRestore.classrooms.length}</div>
                   <div>• الأقسام المعتمدة: {pendingRestore.departments.length}</div>
                   <div>• سجلات الحجوزات: {pendingRestore.bookings.length}</div>
@@ -685,7 +685,7 @@ export function SettingsView({
                       setPendingRestore(null);
                       if (fileInputRef.current) fileInputRef.current.value = '';
                     }}
-                    className="px-3 py-1.5 rounded-lg border border-slate-200 bg-white text-xs font-medium text-slate-700 hover:bg-slate-100 cursor-pointer"
+                    className="px-3 py-1.5 rounded-xl border border-[#DADCE0] bg-white text-xs font-medium text-[#1F1F1F] hover:bg-[#F0F4F9] cursor-pointer"
                   >
                     إلغاء
                   </button>
@@ -693,7 +693,7 @@ export function SettingsView({
                     type="button"
                     disabled={restoring}
                     onClick={() => void handleConfirmRestore()}
-                    className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-lg bg-teal-700 text-white text-xs font-semibold hover:bg-teal-800 disabled:opacity-50 cursor-pointer"
+                    className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-xl bg-[#0B57D0] text-white text-xs font-semibold hover:bg-[#0842A0] disabled:opacity-50 cursor-pointer"
                   >
                     <Upload className="w-3.5 h-3.5" />
                     <span>{restoring ? 'جاري الاستعادة...' : 'تأكيد الاستعادة الآن'}</span>

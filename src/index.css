@@ -5,10 +5,34 @@
     --font-display: 'Cairo', 'IBM Plex Sans Arabic', sans-serif;
     --font-sans: 'IBM Plex Sans Arabic', system-ui, -apple-system, sans-serif;
     --font-mono: 'IBM Plex Mono', ui-monospace, monospace;
+
+    /* Google Workspace / Material Design 3 Tokens */
+    --g-canvas: #f8fafd;
+    --g-surface: #ffffff;
+    --g-surface-tonal: #f0f4f9;
+    --g-surface-container: #e9eef6;
+    --g-border: #dadce0;
+    --g-border-subtle: #e8eaed;
+    --g-ink: #1f1f1f;
+    --g-ink-secondary: #444746;
+    --g-ink-muted: #747775;
+
+    --g-blue: #0b57d0;
+    --g-blue-hover: #0842a0;
+    --g-blue-tint: #d3e3fd;
+    --g-blue-soft: #e8f0fe;
+    --g-green: #137333;
+    --g-green-soft: #e6f4ea;
+    --g-amber: #b06000;
+    --g-amber-soft: #fef7e0;
+    --g-red: #c5221f;
+    --g-red-soft: #fce8e6;
   }
 
   html {
     font-family: var(--font-sans);
+    background-color: var(--g-canvas);
+    color: var(--g-ink);
   }
 
   h1, h2, h3, .font-display {
@@ -23,6 +47,53 @@
   .tabular-nums {
     font-variant-numeric: tabular-nums;
   }
+}
+
+/* Signature Google 4-Color Spectral Hairline */
+.google-spectral-bar {
+  background: linear-gradient(
+    90deg,
+    #4285f4 0%,
+    #4285f4 25%,
+    #ea4335 25%,
+    #ea4335 50%,
+    #fbbc04 50%,
+    #fbbc04 75%,
+    #34a853 75%,
+    #34a853 100%
+  );
+}
+
+/* Material Design 3 Subtle Elevation */
+.g-elevation-1 {
+  box-shadow: 0 1px 2px 0 rgba(60, 64, 67, 0.12), 0 1px 3px 1px rgba(60, 64, 67, 0.06);
+}
+
+.g-elevation-2 {
+  box-shadow: 0 4px 12px 0 rgba(60, 64, 67, 0.12), 0 1px 4px 0 rgba(60, 64, 67, 0.08);
+}
+
+.g-elevation-modal {
+  box-shadow: 0 12px 32px 0 rgba(31, 31, 31, 0.16), 0 2px 6px 0 rgba(31, 31, 31, 0.08);
+}
+
+/* Clean Scrollbars */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #dadce0;
+  border-radius: 6px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #bdc1c6;
 }
 
 @media print {

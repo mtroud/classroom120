@@ -78,9 +78,9 @@ export function DepartmentsView({
 
   if (isLoading) {
     return (
-      <div className="bg-white border border-slate-200 rounded-xl p-6 space-y-3">
+      <div className="bg-white border border-[#DADCE0] rounded-2xl p-6 space-y-3">
         {[1, 2, 3, 4, 5].map((i) => (
-          <div key={i} className="h-12 bg-slate-50 border border-slate-100 rounded-lg" />
+          <div key={i} className="h-12 bg-[#F8FAFD] border border-[#E8EAED] rounded-xl" />
         ))}
       </div>
     );
@@ -91,10 +91,10 @@ export function DepartmentsView({
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h2 className="font-display text-lg font-bold text-slate-900">
+          <h2 className="font-display text-lg font-bold text-[#1F1F1F]">
             أقسام العتبة الحسينية المقدسة ({departments.length})
           </h2>
-          <p className="text-xs text-slate-500 mt-0.5">
+          <p className="text-xs text-[#444746] mt-0.5">
             إدارة الأقسام والشعب المعتمدة لطلب حجز القاعات الدراسية ومتابعة نشاط كل قسم
           </p>
         </div>
@@ -113,7 +113,7 @@ export function DepartmentsView({
                     setSeeding(false);
                   }
                 }}
-                className="px-4 py-2 rounded-lg border border-slate-200 bg-white text-xs font-medium text-slate-700 hover:bg-slate-50 transition-colors cursor-pointer"
+                className="px-4 py-2 rounded-xl border border-[#DADCE0] bg-white text-xs font-medium text-[#1F1F1F] hover:bg-[#F0F4F9] transition-colors cursor-pointer"
               >
                 {seeding ? 'جاري التحميل...' : 'تحميل الأقسام الافتراضية'}
               </button>
@@ -121,7 +121,7 @@ export function DepartmentsView({
             <button
               type="button"
               onClick={onAddDepartment}
-              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-teal-700 text-white text-xs font-semibold hover:bg-teal-800 transition-colors whitespace-nowrap shrink-0 cursor-pointer"
+              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[#0B57D0] text-white text-xs font-semibold hover:bg-[#0842A0] transition-colors whitespace-nowrap shrink-0 cursor-pointer g-elevation-1"
             >
               <Plus className="w-4 h-4" />
               <span>إضافة قسم جديد</span>
@@ -131,9 +131,9 @@ export function DepartmentsView({
       </div>
 
       {/* Filter Bar */}
-      <div className="bg-white border border-slate-200 rounded-xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+      <div className="bg-white border border-[#DADCE0] rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div className="flex flex-wrap items-center gap-3">
-          <div className="inline-flex items-center p-1 bg-slate-100 rounded-lg">
+          <div className="inline-flex items-center p-1 bg-[#F0F4F9] rounded-xl">
             {(
               [
                 ['all', 'الكل'],
@@ -145,10 +145,10 @@ export function DepartmentsView({
                 key={val}
                 type="button"
                 onClick={() => setStatusFilter(val)}
-                className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors whitespace-nowrap shrink-0 cursor-pointer ${
+                className={`px-3 py-1.5 text-xs rounded-lg transition-colors whitespace-nowrap shrink-0 cursor-pointer ${
                   statusFilter === val
-                    ? 'bg-white text-slate-900 shadow-sm'
-                    : 'text-slate-600 hover:text-slate-900'
+                    ? 'bg-white text-[#0B57D0] font-semibold g-elevation-1'
+                    : 'text-[#444746] font-medium hover:text-[#1F1F1F]'
                 }`}
               >
                 {label}
@@ -157,35 +157,35 @@ export function DepartmentsView({
           </div>
 
           <div className="relative min-w-[240px] flex-1 sm:flex-initial">
-            <Search className="w-4 h-4 text-slate-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+            <Search className="w-4 h-4 text-[#747775] absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
             <input
               type="text"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="بحث باسم القسم، الرمز، أو المسؤول..."
-              className="w-full rounded-lg border border-slate-200 bg-white pr-9 pl-3 py-2 text-xs text-slate-900 focus:outline-none focus:border-teal-700"
+              className="w-full rounded-xl border border-[#DADCE0] bg-white pr-9 pl-3 py-2 text-xs text-[#1F1F1F] placeholder:text-[#747775] focus:outline-none focus:border-[#0B57D0] focus:ring-2 focus:ring-[#0B57D0]/15"
             />
           </div>
         </div>
 
-        <div className="text-xs text-slate-500 tabular-nums">
+        <div className="text-xs text-[#444746] tabular-nums">
           الأقسام المفعلة:{' '}
-          <strong className="text-slate-900">
+          <strong className="font-mono-num text-[#1F1F1F]">
             {departments.filter((d) => d.status === 'active').length}
           </strong>{' '}
-          من أصل <strong className="text-slate-900">{departments.length}</strong>
+          من أصل <strong className="font-mono-num text-[#1F1F1F]">{departments.length}</strong>
         </div>
       </div>
 
       {/* Table / Empty State */}
       {filtered.length === 0 ? (
-        <div className="bg-white border border-slate-200 rounded-xl p-12 text-center space-y-3">
-          <p className="text-sm font-medium text-slate-800">
+        <div className="bg-white border border-[#DADCE0] rounded-2xl p-12 text-center space-y-3">
+          <p className="text-sm font-medium text-[#1F1F1F]">
             {departments.length === 0
               ? 'لم يتم إضافة أي قسم بعد'
               : 'لا توجد أقسام مطابقة للبحث'}
           </p>
-          <p className="text-xs text-slate-500">
+          <p className="text-xs text-[#444746]">
             {isAdmin
               ? 'أضف أقسام العتبة الحسينية المقدسة لتظهر مباشرة في نموذج طلب الحجز.'
               : 'بانتظار إضافة الأقسام المعتمدة من قبل إدارة القسم.'}
@@ -195,7 +195,7 @@ export function DepartmentsView({
               <button
                 type="button"
                 onClick={onAddDepartment}
-                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-teal-700 text-white text-xs font-semibold hover:bg-teal-800 transition-colors cursor-pointer"
+                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[#0B57D0] text-white text-xs font-semibold hover:bg-[#0842A0] transition-colors cursor-pointer"
               >
                 <Plus className="w-4 h-4" />
                 <span>إضافة أول قسم</span>
@@ -204,21 +204,21 @@ export function DepartmentsView({
           )}
         </div>
       ) : (
-        <div className="bg-white border border-slate-200 rounded-xl overflow-hidden">
+        <div className="bg-white border border-[#DADCE0] rounded-2xl overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full text-right border-collapse min-w-[820px]">
               <thead>
-                <tr className="bg-slate-50 border-b border-slate-200 text-xs font-semibold text-slate-600">
-                  <th className="px-4 py-3">الرمز</th>
-                  <th className="px-4 py-3">اسم القسم / الشعبة</th>
-                  <th className="px-4 py-3">المرجعية الإدارية</th>
-                  <th className="px-4 py-3">المخول بالتنسيق</th>
-                  <th className="px-4 py-3 text-left">الحجوزات الفعالة</th>
-                  <th className="px-4 py-3">الحالة</th>
-                  <th className="px-4 py-3 text-left">الإجراءات</th>
+                <tr className="bg-[#F8FAFD] border-b border-[#DADCE0] text-xs font-semibold text-[#444746]">
+                  <th className="px-4 py-3.5">الرمز</th>
+                  <th className="px-4 py-3.5">اسم القسم / الشعبة</th>
+                  <th className="px-4 py-3.5">المرجعية الإدارية</th>
+                  <th className="px-4 py-3.5">المخول بالتنسيق</th>
+                  <th className="px-4 py-3.5 text-left">الحجوزات الفعالة</th>
+                  <th className="px-4 py-3.5">الحالة</th>
+                  <th className="px-4 py-3.5 text-left">الإجراءات</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100 text-sm">
+              <tbody className="divide-y divide-[#E8EAED] text-sm">
                 {filtered.map((dept) => {
                   const deptStats = statsByDept.get(dept.name) || {
                     count: 0,
@@ -230,38 +230,38 @@ export function DepartmentsView({
                   return (
                     <tr
                       key={dept.id}
-                      className="hover:bg-slate-50/70 transition-colors"
+                      className="hover:bg-[#F8FAFD] transition-colors"
                     >
-                      <td className="px-4 py-3 font-mono-num text-xs font-semibold text-teal-800 whitespace-nowrap">
+                      <td className="px-4 py-3 font-mono-num text-xs font-semibold text-[#0B57D0] whitespace-nowrap">
                         {dept.code}
                       </td>
                       <td className="px-4 py-3">
-                        <div className="text-xs font-semibold text-slate-900">
+                        <div className="text-xs font-semibold text-[#1F1F1F]">
                           {dept.name}
                         </div>
                         {dept.notes && (
-                          <div className="text-[11px] text-slate-500 mt-0.5 line-clamp-1">
+                          <div className="text-[11px] text-[#747775] mt-0.5 line-clamp-1">
                             {dept.notes}
                           </div>
                         )}
                       </td>
-                      <td className="px-4 py-3 text-xs text-slate-600">
+                      <td className="px-4 py-3 text-xs text-[#444746]">
                         {dept.sector || 'العتبة الحسينية المقدسة'}
                       </td>
-                      <td className="px-4 py-3 text-xs text-slate-700">
+                      <td className="px-4 py-3 text-xs text-[#1F1F1F]">
                         {dept.headName || '—'}
                       </td>
-                      <td className="px-4 py-3 text-left font-mono-num text-xs text-slate-800 whitespace-nowrap">
+                      <td className="px-4 py-3 text-left font-mono-num text-xs text-[#1F1F1F] whitespace-nowrap">
                         {deptStats.count} حجز · {deptStats.hours} س
                       </td>
                       <td className="px-4 py-3 whitespace-nowrap">
                         {isActive ? (
-                          <span className="inline-flex items-center gap-1.5 text-xs font-medium text-emerald-700">
+                          <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#137333]">
                             <CheckCircle2 className="w-3.5 h-3.5" />
                             مفعل
                           </span>
                         ) : (
-                          <span className="inline-flex items-center gap-1.5 text-xs font-medium text-slate-500">
+                          <span className="inline-flex items-center gap-1.5 text-xs font-medium text-[#747775]">
                             <PauseCircle className="w-3.5 h-3.5" />
                             موقوف
                           </span>
@@ -274,7 +274,7 @@ export function DepartmentsView({
                               type="button"
                               disabled={!isActive}
                               onClick={() => onBookForDepartment(dept.name)}
-                              className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md bg-teal-700 text-white text-[11px] font-medium hover:bg-teal-800 disabled:opacity-40 transition-colors cursor-pointer"
+                              className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-[#0B57D0] text-white text-[11px] font-semibold hover:bg-[#0842A0] disabled:opacity-40 transition-colors cursor-pointer"
                             >
                               <CalendarPlus className="w-3 h-3" />
                               <span>حجز قاعة</span>
@@ -285,7 +285,7 @@ export function DepartmentsView({
                             <button
                               type="button"
                               onClick={() => onCreateCoordinator(dept)}
-                              className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md border border-teal-200 bg-teal-50 text-teal-900 text-[11px] font-medium hover:bg-teal-100 transition-colors cursor-pointer"
+                              className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg border border-[#AECBFA] bg-[#E8F0FE] text-[#0B57D0] text-[11px] font-semibold hover:bg-[#D3E3FD] transition-colors cursor-pointer"
                               title="إنشاء حساب منسق لهذا القسم"
                             >
                               <UserPlus className="w-3 h-3" />
@@ -306,14 +306,14 @@ export function DepartmentsView({
                                     setBusyId(null);
                                   }
                                 }}
-                                className="px-2 py-1 rounded-md border border-slate-200 text-[11px] font-medium text-slate-600 hover:bg-slate-50 transition-colors cursor-pointer"
+                                className="px-2 py-1 rounded-lg border border-[#DADCE0] text-[11px] font-medium text-[#444746] hover:bg-[#F0F4F9] hover:text-[#1F1F1F] transition-colors cursor-pointer"
                               >
                                 {isActive ? 'إيقاف' : 'تفعيل'}
                               </button>
                               <button
                                 type="button"
                                 onClick={() => onEditDepartment(dept)}
-                                className="p-1.5 rounded-md text-slate-500 hover:text-slate-900 hover:bg-slate-100 transition-colors cursor-pointer"
+                                className="p-1.5 rounded-lg text-[#444746] hover:text-[#1F1F1F] hover:bg-[#F0F4F9] transition-colors cursor-pointer"
                                 title="تعديل القسم"
                               >
                                 <Pencil className="w-3.5 h-3.5" />
@@ -329,7 +329,7 @@ export function DepartmentsView({
                                     setBusyId(null);
                                   }
                                 }}
-                                className="p-1.5 rounded-md text-slate-400 hover:text-red-700 hover:bg-red-50 transition-colors cursor-pointer"
+                                className="p-1.5 rounded-lg text-[#747775] hover:text-[#C5221F] hover:bg-[#FCE8E6] transition-colors cursor-pointer"
                                 title="حذف القسم"
                               >
                                 <Trash2 className="w-3.5 h-3.5" />

@@ -28,13 +28,14 @@ interface ClassroomOccupancyChartsProps {
 type AnalyticsPeriod = 'today' | 'week' | 'all';
 
 const DAILY_OPERATING_HOURS = 13; // 08:00 to 21:00
+// Official Google Data Visualization Palette
 const CHART_COLORS = [
-  '#0F766E', // teal-700
-  '#0284C7', // sky-600
-  '#D97706', // amber-600
-  '#334155', // slate-700
-  '#0D9488', // teal-600
-  '#64748B', // slate-500
+  '#1A73E8', // Google Blue
+  '#1E8E3E', // Google Green
+  '#F9AB00', // Google Amber/Yellow
+  '#D93025', // Google Red
+  '#9334E6', // Google Purple
+  '#0097A7', // Google Cyan
 ];
 
 interface RoomStatItem {
@@ -62,26 +63,26 @@ function CustomOccupancyTooltip({
   return (
     <div
       dir="rtl"
-      className="bg-white border border-slate-200 rounded-lg shadow-md px-3.5 py-2.5 text-xs space-y-1 min-w-[180px]"
+      className="bg-white border border-[#DADCE0] rounded-xl g-elevation-2 px-3.5 py-2.5 text-xs space-y-1 min-w-[180px]"
     >
-      <div className="font-bold text-slate-900">{item.name}</div>
-      <div className="text-slate-500 font-mono-num">{item.code}</div>
-      <div className="pt-1 border-t border-slate-100 space-y-0.5 text-slate-700">
+      <div className="font-bold text-[#1F1F1F]">{item.name}</div>
+      <div className="text-[#444746] font-mono-num">{item.code}</div>
+      <div className="pt-1 border-t border-[#E8EAED] space-y-0.5 text-[#444746]">
         <div className="flex justify-between gap-4">
           <span>معدل الإشغال:</span>
-          <strong className="font-mono-num text-teal-800">{item.occupancyRate}%</strong>
+          <strong className="font-mono-num text-[#0B57D0]">{item.occupancyRate}%</strong>
         </div>
         <div className="flex justify-between gap-4">
           <span>الساعات المحجوزة:</span>
-          <strong className="font-mono-num">{item.hours} س</strong>
+          <strong className="font-mono-num text-[#1F1F1F]">{item.hours} س</strong>
         </div>
         <div className="flex justify-between gap-4">
           <span>عدد الجلسات:</span>
-          <strong className="font-mono-num">{item.sessions}</strong>
+          <strong className="font-mono-num text-[#1F1F1F]">{item.sessions}</strong>
         </div>
         <div className="flex justify-between gap-4">
           <span>متوسط إشغال المقاعد:</span>
-          <strong className="font-mono-num">{item.seatUtilization}%</strong>
+          <strong className="font-mono-num text-[#1F1F1F]">{item.seatUtilization}%</strong>
         </div>
       </div>
     </div>
@@ -100,16 +101,16 @@ function CustomShareTooltip({
   return (
     <div
       dir="rtl"
-      className="bg-white border border-slate-200 rounded-lg shadow-md px-3.5 py-2.5 text-xs space-y-1"
+      className="bg-white border border-[#DADCE0] rounded-xl g-elevation-2 px-3.5 py-2.5 text-xs space-y-1"
     >
-      <div className="font-bold text-slate-900">{item.name}</div>
-      <div className="flex justify-between gap-4 text-slate-700">
+      <div className="font-bold text-[#1F1F1F]">{item.name}</div>
+      <div className="flex justify-between gap-4 text-[#444746]">
         <span>نسبة من إجمالي الاستخدام:</span>
-        <strong className="font-mono-num text-teal-800">{item.sharePercent}%</strong>
+        <strong className="font-mono-num text-[#0B57D0]">{item.sharePercent}%</strong>
       </div>
-      <div className="flex justify-between gap-4 text-slate-700">
+      <div className="flex justify-between gap-4 text-[#444746]">
         <span>إجمالي الساعات:</span>
-        <strong className="font-mono-num">{item.hours} ساعة</strong>
+        <strong className="font-mono-num text-[#1F1F1F]">{item.hours} ساعة</strong>
       </div>
     </div>
   );
@@ -218,29 +219,29 @@ export function ClassroomOccupancyCharts({
   return (
     <section
       aria-label="إحصائيات إشغال القاعات"
-      className="bg-white border border-slate-200 rounded-xl p-5 lg:p-6 space-y-6"
+      className="bg-white border border-[#DADCE0] rounded-2xl p-5 lg:p-6 space-y-6"
     >
       {/* Header & Period Switch */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-100 pb-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-[#E8EAED] pb-4">
         <div className="flex items-start gap-3">
-          <div className="w-9 h-9 rounded-lg bg-teal-50 border border-teal-200 flex items-center justify-center shrink-0 text-teal-800">
+          <div className="w-9 h-9 rounded-xl bg-[#E8F0FE] border border-[#AECBFA] flex items-center justify-center shrink-0 text-[#0B57D0]">
             <BarChart3 className="w-4 h-4" />
           </div>
           <div>
-            <h3 className="font-display text-base font-bold text-slate-900">
+            <h3 className="font-display text-base font-bold text-[#1F1F1F]">
               إحصائيات الإشغال ونسب استخدام القاعات
             </h3>
-            <p className="text-xs text-slate-500 mt-0.5 flex flex-wrap items-center gap-2">
-              <span>متوسط الإشغال: <strong className="font-mono-num text-slate-800">{avgOccupancy}%</strong></span>
+            <p className="text-xs text-[#444746] mt-0.5 flex flex-wrap items-center gap-2">
+              <span>متوسط الإشغال: <strong className="font-mono-num text-[#1F1F1F]">{avgOccupancy}%</strong></span>
               <span aria-hidden="true">·</span>
-              <span>إجمالي الساعات: <strong className="font-mono-num text-slate-800">{totalHours} س</strong></span>
+              <span>إجمالي الساعات: <strong className="font-mono-num text-[#1F1F1F]">{totalHours} س</strong></span>
               <span aria-hidden="true">·</span>
-              <span>الجلسات الفعالة: <strong className="font-mono-num text-slate-800">{totalSessions}</strong></span>
+              <span>الجلسات الفعالة: <strong className="font-mono-num text-[#1F1F1F]">{totalSessions}</strong></span>
             </p>
           </div>
         </div>
 
-        <div className="inline-flex items-center p-1 bg-slate-100 rounded-lg self-start sm:self-auto">
+        <div className="inline-flex items-center p-1 bg-[#F0F4F9] rounded-xl self-start sm:self-auto">
           {(
             [
               ['today', 'اليوم'],
@@ -252,10 +253,10 @@ export function ClassroomOccupancyCharts({
               key={val}
               type="button"
               onClick={() => setPeriod(val)}
-              className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors whitespace-nowrap shrink-0 cursor-pointer ${
+              className={`px-3 py-1.5 text-xs rounded-lg transition-colors whitespace-nowrap shrink-0 cursor-pointer ${
                 period === val
-                  ? 'bg-white text-slate-900 shadow-sm'
-                  : 'text-slate-600 hover:text-slate-900'
+                  ? 'bg-white text-[#0B57D0] font-semibold g-elevation-1'
+                  : 'text-[#444746] font-medium hover:text-[#1F1F1F]'
               }`}
             >
               {label}
@@ -269,10 +270,10 @@ export function ClassroomOccupancyCharts({
         {/* Bar Chart: Occupancy % per classroom */}
         <div className="xl:col-span-7 min-w-0 space-y-3">
           <div className="flex items-center justify-between">
-            <h4 className="text-sm font-semibold text-slate-800">
+            <h4 className="text-sm font-semibold text-[#1F1F1F]">
               معدل الإشغال الزمني لكل قاعة (%)
             </h4>
-            <span className="text-[11px] text-slate-500">
+            <span className="text-[11px] text-[#747775]">
               محسوب على أساس 13 ساعة تشغيل يومياً
             </span>
           </div>
@@ -284,23 +285,23 @@ export function ClassroomOccupancyCharts({
                 margin={{ top: 10, right: 16, left: 0, bottom: 12 }}
                 barCategoryGap="24%"
               >
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E2E8F0" />
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E8EAED" />
                 <XAxis
                   dataKey="code"
-                  tick={{ fill: '#475569', fontSize: 12, fontFamily: 'IBM Plex Mono' }}
-                  axisLine={{ stroke: '#CBD5E1' }}
+                  tick={{ fill: '#444746', fontSize: 12, fontFamily: 'IBM Plex Mono' }}
+                  axisLine={{ stroke: '#DADCE0' }}
                   tickLine={false}
                 />
                 <YAxis
                   domain={[0, 100]}
                   tickFormatter={(v) => `${v}%`}
-                  tick={{ fill: '#64748B', fontSize: 11, fontFamily: 'IBM Plex Mono' }}
+                  tick={{ fill: '#747775', fontSize: 11, fontFamily: 'IBM Plex Mono' }}
                   axisLine={false}
                   tickLine={false}
                   width={44}
                 />
                 <Tooltip
-                  cursor={{ fill: '#F1F5F9' }}
+                  cursor={{ fill: '#F0F4F9' }}
                   content={<CustomOccupancyTooltip />}
                 />
                 <Bar
@@ -318,22 +319,22 @@ export function ClassroomOccupancyCharts({
         </div>
 
         {/* Pie Chart + Numeric Breakdown: Usage Distribution */}
-        <div className="xl:col-span-5 min-w-0 space-y-3 border-t xl:border-t-0 xl:border-r border-slate-100 pt-5 xl:pt-0 xl:pr-6">
+        <div className="xl:col-span-5 min-w-0 space-y-3 border-t xl:border-t-0 xl:border-r border-[#E8EAED] pt-5 xl:pt-0 xl:pr-6">
           <div className="flex items-center justify-between">
-            <h4 className="text-sm font-semibold text-slate-800">
+            <h4 className="text-sm font-semibold text-[#1F1F1F]">
               توزيع حصص الاستخدام حسب القاعة
             </h4>
-            <span className="text-[11px] text-slate-500 font-mono-num">
+            <span className="text-[11px] text-[#747775] font-mono-num">
               {totalHours} س إجمالاً
             </span>
           </div>
 
           {pieData.length === 0 ? (
-            <div className="h-[240px] flex flex-col items-center justify-center text-center bg-slate-50/70 border border-slate-100 rounded-lg px-4">
-              <p className="text-xs font-medium text-slate-600">
+            <div className="h-[240px] flex flex-col items-center justify-center text-center bg-[#F8FAFD] border border-[#E8EAED] rounded-xl px-4">
+              <p className="text-xs font-medium text-[#444746]">
                 لا توجد ساعات محجوزة في هذه الفترة لعرض التوزيع النسبي
               </p>
-              <p className="text-[11px] text-slate-400 mt-1">
+              <p className="text-[11px] text-[#747775] mt-1">
                 جرّب التبديل إلى «الأسبوع الحالي» أو «كل الفترات».
               </p>
             </div>
@@ -361,7 +362,7 @@ export function ClassroomOccupancyCharts({
                 </ResponsiveContainer>
               </div>
 
-              <div className="sm:col-span-7 divide-y divide-slate-100">
+              <div className="sm:col-span-7 divide-y divide-[#E8EAED]">
                 {stats.map((item) => (
                   <div
                     key={item.id}
@@ -373,13 +374,13 @@ export function ClassroomOccupancyCharts({
                         style={{ backgroundColor: item.color }}
                         aria-hidden="true"
                       />
-                      <span className="text-slate-700 font-medium truncate">
+                      <span className="text-[#1F1F1F] font-medium truncate">
                         {item.shortName}
                       </span>
                     </div>
                     <div className="flex items-center gap-2.5 shrink-0 font-mono-num">
-                      <span className="text-slate-500">{item.hours} س</span>
-                      <span className="font-semibold text-slate-900 w-11 text-left">
+                      <span className="text-[#444746]">{item.hours} س</span>
+                      <span className="font-semibold text-[#1F1F1F] w-11 text-left">
                         {item.sharePercent}%
                       </span>
                     </div>

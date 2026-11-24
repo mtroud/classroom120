@@ -31,21 +31,21 @@ export class ErrorBoundary extends React.Component<
   render() {
     if (this.state.hasError) {
       return (
-        <div className="min-h-screen bg-slate-50 flex items-center justify-center p-6" dir="rtl">
-          <div className="max-w-lg w-full bg-white border border-slate-200 rounded-xl p-8 text-center">
-            <div className="w-12 h-12 rounded-xl bg-red-50 text-red-700 flex items-center justify-center mx-auto mb-4">
+        <div className="min-h-screen bg-[#F8FAFD] flex items-center justify-center p-6" dir="rtl">
+          <div className="max-w-lg w-full bg-white border border-[#DADCE0] rounded-2xl g-elevation-1 p-8 text-center">
+            <div className="w-12 h-12 rounded-xl bg-[#FCE8E6] border border-[#F6AEA9] text-[#C5221F] flex items-center justify-center mx-auto mb-4">
               <AlertTriangle className="w-6 h-6" />
             </div>
-            <h2 className="text-xl font-bold text-slate-900 mb-2">
+            <h2 className="font-display text-xl font-bold text-[#1F1F1F] mb-2">
               تعذر تحميل بيانات القاعات
             </h2>
-            <p className="text-sm text-slate-600 leading-relaxed mb-6 break-words">
+            <p className="text-sm text-[#444746] leading-relaxed mb-6 break-words">
               {this.state.message}
             </p>
             <button
               type="button"
               onClick={() => window.location.reload()}
-              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg bg-teal-700 text-white text-sm font-medium hover:bg-teal-800 transition-colors cursor-pointer"
+              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#0B57D0] text-white text-sm font-semibold hover:bg-[#0842A0] g-elevation-1 transition-colors cursor-pointer"
             >
               <RefreshCw className="w-4 h-4" />
               <span>إعادة تحميل المنظومة</span>

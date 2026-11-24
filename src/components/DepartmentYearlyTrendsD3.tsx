@@ -46,12 +46,12 @@ const FULL_ARABIC_MONTHS = [
 ];
 
 const SERIES_PALETTE = [
-  '#0F766E', // Deep Teal
-  '#0284C7', // Sky Blue
-  '#D97706', // Warm Amber
-  '#7C3AED', // Indigo Violet
-  '#E11D48', // Crimson Rose
-  '#334155', // Slate
+  '#1A73E8', // Google Blue
+  '#1E8E3E', // Google Green
+  '#F9AB00', // Google Yellow/Amber
+  '#9334E6', // Google Purple
+  '#D93025', // Google Red
+  '#0097A7', // Google Cyan
 ];
 
 interface MonthlyDeptDatum {
@@ -227,7 +227,7 @@ export function DepartmentYearlyTrendsD3({
         grid.select('.domain').remove();
         grid
           .selectAll('line')
-          .attr('stroke', '#E2E8F0')
+          .attr('stroke', '#E8EAED')
           .attr('stroke-dasharray', '3,3');
       });
 
@@ -239,7 +239,7 @@ export function DepartmentYearlyTrendsD3({
         axis.selectAll('line').remove();
         axis
           .selectAll('text')
-          .attr('fill', '#64748B')
+          .attr('fill', '#747775')
           .attr('font-size', '11px')
           .attr('font-family', 'IBM Plex Mono, monospace');
       });
@@ -253,11 +253,11 @@ export function DepartmentYearlyTrendsD3({
           .tickFormat((d) => SHORT_ARABIC_MONTHS[Number(d)] || '')
       )
       .call((axis) => {
-        axis.select('.domain').attr('stroke', '#CBD5E1');
-        axis.selectAll('line').attr('stroke', '#CBD5E1');
+        axis.select('.domain').attr('stroke', '#DADCE0');
+        axis.selectAll('line').attr('stroke', '#DADCE0');
         axis
           .selectAll('text')
-          .attr('fill', '#475569')
+          .attr('fill', '#444746')
           .attr('font-size', '11px')
           .attr('font-family', 'IBM Plex Sans Arabic, sans-serif');
       });
@@ -322,7 +322,7 @@ export function DepartmentYearlyTrendsD3({
         .attr('x2', hx)
         .attr('y1', 0)
         .attr('y2', innerHeight)
-        .attr('stroke', '#94A3B8')
+        .attr('stroke', '#9AA0A6')
         .attr('stroke-width', 1)
         .attr('stroke-dasharray', '4,3');
     }
@@ -376,23 +376,23 @@ export function DepartmentYearlyTrendsD3({
     hoveredMonth !== null ? monthlyData[hoveredMonth.monthIndex] : null;
 
   return (
-    <div className="bg-white border border-slate-200 rounded-xl p-5 space-y-4">
+    <div className="bg-white border border-[#DADCE0] rounded-2xl p-5 space-y-4">
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-2">
-            <TrendingUp className="w-4 h-4 text-teal-800 shrink-0" />
-            <h3 className="font-display text-sm font-bold text-slate-900">
+            <TrendingUp className="w-4 h-4 text-[#0B57D0] shrink-0" />
+            <h3 className="font-display text-sm font-bold text-[#1F1F1F]">
               تحليل الاتجاهات السنوية لحجوزات الأقسام (D3.js)
             </h3>
           </div>
-          <p className="text-xs text-slate-500 mt-1">
+          <p className="text-xs text-[#747775] mt-1">
             التوزع الشهري لأكثر الأقسام نشاطاً على مدار سنة{' '}
             <span className="font-mono-num">{year}</span> · النطاق: {selectedRoomLabel}
           </p>
         </div>
 
         <div className="flex flex-wrap items-center gap-2.5 no-print">
-          <div className="inline-flex items-center p-1 bg-slate-100 rounded-lg">
+          <div className="inline-flex items-center p-1 bg-[#F0F4F9] rounded-xl">
             {(
               [
                 ['hours', 'ساعات التشغيل'],
@@ -404,10 +404,10 @@ export function DepartmentYearlyTrendsD3({
                 key={key}
                 type="button"
                 onClick={() => setMetric(key)}
-                className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors whitespace-nowrap shrink-0 cursor-pointer ${
+                className={`px-3 py-1.5 text-xs rounded-lg transition-colors whitespace-nowrap shrink-0 cursor-pointer ${
                   metric === key
-                    ? 'bg-white text-slate-900 shadow-sm'
-                    : 'text-slate-600 hover:text-slate-900'
+                    ? 'bg-white text-[#0B57D0] font-semibold g-elevation-1'
+                    : 'text-[#444746] font-medium hover:text-[#1F1F1F]'
                 }`}
               >
                 {label}
@@ -418,7 +418,7 @@ export function DepartmentYearlyTrendsD3({
           <select
             value={year}
             onChange={(e) => onYearChange(Number(e.target.value))}
-            className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-mono-num text-slate-800 focus:outline-none focus:border-teal-700"
+            className="rounded-xl border border-[#DADCE0] bg-white px-3 py-1.5 text-xs font-mono-num text-[#1F1F1F] focus:outline-none focus:border-[#0B57D0] focus:ring-2 focus:ring-[#0B57D0]/15"
             aria-label="سنة التحليل السنوي"
           >
             {availableYears.map((y) => (
@@ -431,7 +431,7 @@ export function DepartmentYearlyTrendsD3({
       </div>
 
       {departments.length === 0 ? (
-        <div className="py-14 text-center text-xs text-slate-500 border border-dashed border-slate-200 rounded-lg">
+        <div className="py-14 text-center text-xs text-[#747775] border border-dashed border-[#DADCE0] rounded-xl bg-[#F8FAFD]">
           لا توجد حجوزات فعالة مسجلة في سنة {year} لتحليل اتجاهات الأقسام.
         </div>
       ) : (
@@ -446,23 +446,23 @@ export function DepartmentYearlyTrendsD3({
                   key={dept}
                   type="button"
                   onClick={() => toggleDeptVisibility(dept)}
-                  className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-lg border text-xs transition-colors cursor-pointer whitespace-nowrap shrink-0 ${
+                  className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-xl border text-xs transition-colors cursor-pointer whitespace-nowrap shrink-0 ${
                     isHidden
-                      ? 'bg-slate-50 border-slate-200 text-slate-400'
-                      : 'bg-white border-slate-200 text-slate-800 hover:border-slate-300'
+                      ? 'bg-[#F8FAFD] border-[#E8EAED] text-[#9AA0A6]'
+                      : 'bg-white border-[#DADCE0] text-[#1F1F1F] hover:bg-[#F0F4F9]'
                   }`}
                   title={isHidden ? 'انقر لإظهار هذا القسم' : 'انقر لإخفاء هذا القسم'}
                 >
                   <span
                     className="w-2.5 h-2.5 rounded-sm shrink-0"
                     style={{
-                      backgroundColor: isHidden ? '#CBD5E1' : color,
+                      backgroundColor: isHidden ? '#DADCE0' : color,
                     }}
                   />
                   <span className={isHidden ? 'line-through' : 'font-medium'}>
                     {dept}
                   </span>
-                  <span className="font-mono-num text-[11px] text-slate-500">
+                  <span className="font-mono-num text-[11px] text-[#747775]">
                     ({totalsByDept[dept]} {metricUnit})
                   </span>
                 </button>
@@ -477,7 +477,7 @@ export function DepartmentYearlyTrendsD3({
             {hoveredMonth && hoveredDatum && (
               <div
                 dir="rtl"
-                className="pointer-events-none absolute z-20 bg-white border border-slate-200 rounded-lg shadow-md px-3.5 py-2.5 text-xs min-w-[210px] space-y-1.5"
+                className="pointer-events-none absolute z-20 bg-white border border-[#DADCE0] rounded-xl g-elevation-2 px-3.5 py-2.5 text-xs min-w-[210px] space-y-1.5"
                 style={{
                   top: `${hoveredMonth.yPx}px`,
                   left:
@@ -486,7 +486,7 @@ export function DepartmentYearlyTrendsD3({
                       : `${Math.min(chartWidth - 225, hoveredMonth.xPx + 14)}px`,
                 }}
               >
-                <div className="font-bold text-slate-900 border-b border-slate-100 pb-1">
+                <div className="font-bold text-[#1F1F1F] border-b border-[#E8EAED] pb-1">
                   {hoveredDatum.fullLabel} {year}
                 </div>
                 <div className="space-y-1">
@@ -498,14 +498,14 @@ export function DepartmentYearlyTrendsD3({
                         key={dept}
                         className="flex items-center justify-between gap-4 text-[11px]"
                       >
-                        <span className="inline-flex items-center gap-1.5 text-slate-700 truncate max-w-[140px]">
+                        <span className="inline-flex items-center gap-1.5 text-[#444746] truncate max-w-[140px]">
                           <span
                             className="w-2 h-2 rounded-sm shrink-0"
                             style={{ backgroundColor: color }}
                           />
                           <span className="truncate">{dept}</span>
                         </span>
-                        <strong className="font-mono-num text-slate-900 shrink-0">
+                        <strong className="font-mono-num text-[#1F1F1F] shrink-0">
                           {hoveredDatum.values[dept] || 0} {metricUnit}
                         </strong>
                       </div>

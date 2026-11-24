@@ -312,21 +312,21 @@ export function BookingModal({
 
   return (
     <div
-      className="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-[2px] flex items-center justify-center p-4"
+      className="fixed inset-0 z-50 bg-[#1F1F1F]/45 backdrop-blur-[2px] flex items-center justify-center p-4"
       role="dialog"
       aria-modal="true"
       aria-labelledby="booking-modal-title"
     >
       <div
         ref={formBodyRef}
-        className="bg-white border border-slate-200 rounded-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto"
+        className="bg-white border border-[#DADCE0] rounded-2xl g-elevation-modal max-w-2xl w-full max-h-[90vh] overflow-y-auto"
       >
-        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200">
+        <div className="flex items-center justify-between px-6 py-4 bg-[#F8FAFD] border-b border-[#E8EAED]">
           <div>
-            <h2 id="booking-modal-title" className="font-display text-lg font-bold text-slate-900">
+            <h2 id="booking-modal-title" className="font-display text-lg font-bold text-[#1F1F1F]">
               {form.id ? 'تعديل طلب الحجز' : 'حجز قاعة دراسية'}
             </h2>
-            <p className="text-xs text-slate-500 mt-0.5">
+            <p className="text-xs text-[#747775] mt-0.5">
               {isAdmin
                 ? 'صلاحية الإدارة: يمكنك الموافقة الفورية على الحجز أو إبقائه قيد المراجعة'
                 : 'اختر القاعة والتاريخ والوقت المتاح لإرسال طلب الحجز لموافقة الإدارة'}
@@ -335,7 +335,7 @@ export function BookingModal({
           <button
             type="button"
             onClick={onClose}
-            className="p-2 rounded-lg text-slate-500 hover:bg-slate-100 hover:text-slate-900 transition-colors cursor-pointer"
+            className="p-2 rounded-xl text-[#444746] hover:bg-[#E8EAED]/60 hover:text-[#1F1F1F] transition-colors cursor-pointer"
             aria-label="إغلاق النافذة"
           >
             <X className="w-5 h-5" />
@@ -344,32 +344,32 @@ export function BookingModal({
 
         <form onSubmit={handleSubmit} className="p-6 space-y-5">
           {errorMsg && (
-            <div className="bg-red-50 border border-red-200 rounded-lg px-4 py-3 text-sm text-red-800 flex items-start gap-2.5">
+            <div className="bg-[#FCE8E6] border border-[#F6AEA9] rounded-xl px-4 py-3 text-sm text-[#C5221F] flex items-start gap-2.5" role="alert">
               <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
               <span>{errorMsg}</span>
             </div>
           )}
 
           {conflicts.length > 0 && (
-            <div className="bg-amber-50 border border-amber-300 rounded-lg px-4 py-3 text-sm text-amber-950 space-y-1">
-              <div className="font-bold flex items-center gap-2 text-amber-900">
-                <AlertCircle className="w-4 h-4 text-amber-700 shrink-0" />
+            <div className="bg-[#FEF7E0] border border-[#FDE293] rounded-xl px-4 py-3 text-sm text-[#1F1F1F] space-y-1">
+              <div className="font-bold flex items-center gap-2 text-[#B06000]">
+                <AlertCircle className="w-4 h-4 text-[#B06000] shrink-0" />
                 <span>تنبيه تعارض: هذه القاعة محجوزة في نفس الوقت المحدد</span>
               </div>
               {conflicts.map((c) => (
-                <div key={c.id} className="text-xs text-amber-900 pr-6 font-mono-num">
+                <div key={c.id} className="text-xs text-[#444746] pr-6 font-mono-num">
                   محجوزة من {formatTime12Ar(c.startTime)} إلى {formatTime12Ar(c.endTime)} — {c.courseTitle}
                 </div>
               ))}
-              <div className="text-[11px] text-amber-800 pr-6">
+              <div className="text-[11px] text-[#B06000] pr-6">
                 يرجى اختيار وقت آخر متاح من الجدول الزمني أدناه أو اختيار قاعة أخرى.
               </div>
             </div>
           )}
 
           {lockedDepartment && (
-            <div className="bg-teal-50/70 border border-teal-200 rounded-lg px-4 py-2.5 text-xs text-teal-900 flex items-center gap-2">
-              <Building2 className="w-4 h-4 text-teal-700 shrink-0" />
+            <div className="bg-[#E8F0FE] border border-[#AECBFA] rounded-xl px-4 py-2.5 text-xs text-[#041E49] flex items-center gap-2">
+              <Building2 className="w-4 h-4 text-[#0B57D0] shrink-0" />
               <span>
                 الحجز مخصص لقسمك فقط: <strong className="font-semibold">{lockedDepartment}</strong>
               </span>
@@ -377,7 +377,7 @@ export function BookingModal({
           )}
 
           {isMaintenanceRoom && (
-            <div className="bg-red-50 border border-red-200 rounded-lg px-4 py-2.5 text-xs text-red-800">
+            <div className="bg-[#FCE8E6] border border-[#F6AEA9] rounded-xl px-4 py-2.5 text-xs text-[#C5221F]">
               تنبيه: القاعة المحددة قيد الصيانة الفنية حالياً.
             </div>
           )}
@@ -386,10 +386,10 @@ export function BookingModal({
             {/* Classroom Selection Cards + Dropdown */}
             <div className="sm:col-span-2 space-y-2">
               <div className="flex items-center justify-between gap-2">
-                <label className="block text-xs font-medium text-slate-700">
+                <label className="block text-xs font-medium text-[#444746]">
                   القاعات المتاحة للحجز ({classrooms.length})
                 </label>
-                <span className="text-[11px] text-slate-500">
+                <span className="text-[11px] text-[#747775]">
                   اضغط على القاعة لاختيارها أو استعرض حالتها للوقت المحدد
                 </span>
               </div>
@@ -406,38 +406,38 @@ export function BookingModal({
                         key={room.id}
                         type="button"
                         onClick={() => setForm({ ...form, roomId: room.id })}
-                        className={`text-right rounded-lg border px-3 py-2.5 transition-colors cursor-pointer ${
+                        className={`text-right rounded-xl border px-3 py-2.5 transition-colors cursor-pointer ${
                           isSelected
                             ? hasRoomConflict
-                              ? 'border-amber-500 bg-amber-50/80'
-                              : 'border-teal-700 bg-teal-50/60'
-                            : 'border-slate-200 bg-white hover:bg-slate-50'
+                              ? 'border-[#B06000] bg-[#FEF7E0]'
+                              : 'border-[#0B57D0] bg-[#E8F0FE]'
+                            : 'border-[#DADCE0] bg-white hover:bg-[#F8FAFD]'
                         }`}
                       >
                         <div className="flex items-center justify-between gap-2">
-                          <span className="text-xs font-bold text-slate-900 truncate">
+                          <span className="text-xs font-bold text-[#1F1F1F] truncate">
                             {room.name}
                           </span>
-                          <span className="font-mono-num text-[11px] text-slate-500 shrink-0">
+                          <span className="font-mono-num text-[11px] text-[#747775] shrink-0">
                             {room.code}
                           </span>
                         </div>
                         <div className="mt-1 flex items-center justify-between gap-2 text-[11px]">
-                          <span className="text-slate-500 font-mono-num">
+                          <span className="text-[#747775] font-mono-num">
                             {room.capacity} مقعد · {room.floor}
                           </span>
                           {isMaint ? (
-                            <span className="inline-flex items-center gap-1 text-red-700 font-medium shrink-0">
+                            <span className="inline-flex items-center gap-1 text-[#C5221F] font-medium shrink-0">
                               <Wrench className="w-3 h-3" />
                               صيانة
                             </span>
                           ) : hasRoomConflict ? (
-                            <span className="inline-flex items-center gap-1 text-amber-800 font-semibold shrink-0">
+                            <span className="inline-flex items-center gap-1 text-[#B06000] font-semibold shrink-0">
                               <AlertCircle className="w-3 h-3" />
                               متعارض بالوقت
                             </span>
                           ) : (
-                            <span className="inline-flex items-center gap-1 text-emerald-700 font-medium shrink-0">
+                            <span className="inline-flex items-center gap-1 text-[#137333] font-medium shrink-0">
                               <CheckCircle2 className="w-3 h-3" />
                               متاحة
                             </span>
@@ -453,7 +453,7 @@ export function BookingModal({
                 value={form.roomId}
                 onChange={(e) => setForm({ ...form, roomId: e.target.value })}
                 aria-label="اختيار القاعة الدراسية"
-                className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs text-slate-800 focus:outline-none focus:border-teal-700"
+                className="w-full rounded-xl border border-[#DADCE0] bg-white px-3 py-2 text-xs text-[#1F1F1F] focus:outline-none focus:border-[#0B57D0] focus:ring-2 focus:ring-[#0B57D0]/15"
                 required
               >
                 <option value="">اختر القاعة...</option>
@@ -475,7 +475,7 @@ export function BookingModal({
             </div>
 
             <div className="sm:col-span-2">
-              <label className="block text-xs font-medium text-slate-700 mb-1.5">
+              <label className="block text-xs font-medium text-[#444746] mb-1.5">
                 عنوان المحاضرة / الدورة / النشاط
               </label>
               <input
@@ -484,13 +484,13 @@ export function BookingModal({
                 value={form.courseTitle}
                 onChange={(e) => setForm({ ...form, courseTitle: e.target.value })}
                 placeholder="مثال: محاضرة تطبيقات الحاسوب المتقدمة"
-                className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 focus:outline-none focus:border-teal-700"
+                className="w-full rounded-xl border border-[#DADCE0] bg-white px-3 py-2.5 text-sm text-[#1F1F1F] placeholder:text-[#747775] focus:outline-none focus:border-[#0B57D0] focus:ring-2 focus:ring-[#0B57D0]/15"
                 required
               />
             </div>
 
             <div>
-              <label className="block text-xs font-medium text-slate-700 mb-1.5">
+              <label className="block text-xs font-medium text-[#444746] mb-1.5">
                 اسم الأستاذ / المحاضر
               </label>
               <input
@@ -499,19 +499,19 @@ export function BookingModal({
                 value={form.instructorName}
                 onChange={(e) => setForm({ ...form, instructorName: e.target.value })}
                 placeholder="د. / أ. الاسم الكامل"
-                className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 focus:outline-none focus:border-teal-700"
+                className="w-full rounded-xl border border-[#DADCE0] bg-white px-3 py-2.5 text-sm text-[#1F1F1F] placeholder:text-[#747775] focus:outline-none focus:border-[#0B57D0] focus:ring-2 focus:ring-[#0B57D0]/15"
                 required
               />
             </div>
 
             <div>
-              <label className="block text-xs font-medium text-slate-700 mb-1.5">
+              <label className="block text-xs font-medium text-[#444746] mb-1.5">
                 {lockedDepartment
                   ? 'القسم الطالب (قسمك فقط)'
                   : 'القسم الطالب (أقسام العتبة الحسينية المقدسة)'}
               </label>
               {lockedDepartment ? (
-                <div className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm font-semibold text-slate-900">
+                <div className="w-full rounded-xl border border-[#E8EAED] bg-[#F8FAFD] px-3 py-2.5 text-sm font-semibold text-[#1F1F1F]">
                   {lockedDepartment}
                 </div>
               ) : (
@@ -527,7 +527,7 @@ export function BookingModal({
                         setForm({ ...form, department: '' });
                       }
                     }}
-                    className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 focus:outline-none focus:border-teal-700"
+                    className="w-full rounded-xl border border-[#DADCE0] bg-white px-3 py-2.5 text-sm text-[#1F1F1F] focus:outline-none focus:border-[#0B57D0] focus:ring-2 focus:ring-[#0B57D0]/15"
                     required
                   >
                     {availableDepartments.map((dept) => (
@@ -544,7 +544,7 @@ export function BookingModal({
                       value={form.department}
                       onChange={(e) => setForm({ ...form, department: e.target.value })}
                       placeholder="اكتب اسم القسم أو الشعبة في العتبة الحسينية المقدسة"
-                      className="mt-2 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 focus:outline-none focus:border-teal-700"
+                      className="mt-2 w-full rounded-xl border border-[#DADCE0] bg-white px-3 py-2 text-sm text-[#1F1F1F] placeholder:text-[#747775] focus:outline-none focus:border-[#0B57D0] focus:ring-2 focus:ring-[#0B57D0]/15"
                       required
                     />
                   )}
@@ -553,7 +553,7 @@ export function BookingModal({
             </div>
 
             <div>
-              <label className="block text-xs font-medium text-slate-700 mb-1.5">
+              <label className="block text-xs font-medium text-[#444746] mb-1.5">
                 نوع النشاط
               </label>
               <select
@@ -561,7 +561,7 @@ export function BookingModal({
                 onChange={(e) =>
                   setForm({ ...form, bookingType: e.target.value as BookingType })
                 }
-                className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 focus:outline-none focus:border-teal-700"
+                className="w-full rounded-xl border border-[#DADCE0] bg-white px-3 py-2.5 text-sm text-[#1F1F1F] focus:outline-none focus:border-[#0B57D0] focus:ring-2 focus:ring-[#0B57D0]/15"
               >
                 {(Object.keys(BOOKING_TYPE_LABEL) as BookingType[]).map((t) => (
                   <option key={t} value={t}>
@@ -572,26 +572,26 @@ export function BookingModal({
             </div>
 
             <div>
-              <label className="block text-xs font-medium text-slate-700 mb-1.5">
+              <label className="block text-xs font-medium text-[#444746] mb-1.5">
                 التاريخ
               </label>
               <input
                 type="date"
                 value={form.date}
                 onChange={(e) => setForm({ ...form, date: e.target.value })}
-                className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm font-mono-num text-slate-900 focus:outline-none focus:border-teal-700"
+                className="w-full rounded-xl border border-[#DADCE0] bg-white px-3 py-2.5 text-sm font-mono-num text-[#1F1F1F] focus:outline-none focus:border-[#0B57D0] focus:ring-2 focus:ring-[#0B57D0]/15"
                 required
               />
             </div>
 
             <div>
-              <label className="block text-xs font-medium text-slate-700 mb-1.5">
+              <label className="block text-xs font-medium text-[#444746] mb-1.5">
                 وقت البدء
               </label>
               <select
                 value={form.startTime}
                 onChange={(e) => handleStartTimeChange(e.target.value)}
-                className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 focus:outline-none focus:border-teal-700"
+                className="w-full rounded-xl border border-[#DADCE0] bg-white px-3 py-2.5 text-sm text-[#1F1F1F] focus:outline-none focus:border-[#0B57D0] focus:ring-2 focus:ring-[#0B57D0]/15"
               >
                 {TIME_OPTIONS.slice(0, -1).map((t) => (
                   <option key={t} value={t}>
@@ -602,13 +602,13 @@ export function BookingModal({
             </div>
 
             <div>
-              <label className="block text-xs font-medium text-slate-700 mb-1.5">
+              <label className="block text-xs font-medium text-[#444746] mb-1.5">
                 وقت الانتهاء
               </label>
               <select
                 value={form.endTime}
                 onChange={(e) => setForm({ ...form, endTime: e.target.value })}
-                className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 focus:outline-none focus:border-teal-700"
+                className="w-full rounded-xl border border-[#DADCE0] bg-white px-3 py-2.5 text-sm text-[#1F1F1F] focus:outline-none focus:border-[#0B57D0] focus:ring-2 focus:ring-[#0B57D0]/15"
               >
                 {validEndTimeOptions.map((t) => (
                   <option key={t} value={t}>
@@ -626,10 +626,10 @@ export function BookingModal({
                     key={preset.mins}
                     type="button"
                     onClick={() => applyDurationMinutes(preset.mins)}
-                    className={`px-2.5 py-1 rounded-md text-[11px] font-medium border transition-colors cursor-pointer ${
+                    className={`px-2.5 py-1 rounded-lg text-[11px] font-medium border transition-colors cursor-pointer ${
                       activeDurationMinutes === preset.mins
-                        ? 'border-teal-700 bg-teal-50 text-teal-900'
-                        : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
+                        ? 'border-[#0B57D0] bg-[#E8F0FE] text-[#0B57D0] font-semibold'
+                        : 'border-[#DADCE0] bg-white text-[#444746] hover:bg-[#F0F4F9]'
                     }`}
                   >
                     {preset.label}
@@ -640,15 +640,15 @@ export function BookingModal({
 
             {/* Selected Room Daily Times Strip (Shows available vs booked times) */}
             {form.roomId && form.date && (
-              <div className="sm:col-span-2 bg-slate-50 border border-slate-200 rounded-lg p-3.5 space-y-2.5">
+              <div className="sm:col-span-2 bg-[#F8FAFD] border border-[#E8EAED] rounded-xl p-3.5 space-y-2.5">
                 <div className="flex flex-wrap items-center justify-between gap-2 text-xs">
-                  <div className="font-semibold text-slate-800 flex items-center gap-1.5">
-                    <Clock className="w-3.5 h-3.5 text-teal-700" />
+                  <div className="font-semibold text-[#1F1F1F] flex items-center gap-1.5">
+                    <Clock className="w-3.5 h-3.5 text-[#0B57D0]" />
                     <span>
                       أوقات القاعة في يوم <span className="font-mono-num">{form.date}</span>
                     </span>
                   </div>
-                  <span className="text-[11px] text-slate-500">
+                  <span className="text-[11px] text-[#747775]">
                     {selectedRoomDayBookings.length === 0
                       ? 'جميع الأوقات متاحة في هذا اليوم'
                       : `يوجد ${selectedRoomDayBookings.length} حجز قائم — اضغط على أي ساعة متاحة لاختيارها`}
@@ -675,14 +675,14 @@ export function BookingModal({
                           key={hourStr}
                           type="button"
                           onClick={() => handleSelectHourSlot(hourStr)}
-                          className={`px-2 py-1.5 rounded-md border text-[11px] font-mono-num text-center transition-colors cursor-pointer ${
+                          className={`px-2 py-1.5 rounded-lg border text-[11px] font-mono-num text-center transition-colors cursor-pointer ${
                             busyBooking
                               ? isInChosenRange
-                                ? 'border-amber-500 bg-amber-100 text-amber-950 font-semibold'
-                                : 'border-red-200 bg-red-50/70 text-red-700'
+                                ? 'border-[#B06000] bg-[#FEF7E0] text-[#B06000] font-semibold'
+                                : 'border-[#F6AEA9] bg-[#FCE8E6]/80 text-[#C5221F]'
                               : isInChosenRange
-                                ? 'border-teal-700 bg-teal-700 text-white font-semibold'
-                                : 'border-slate-200 bg-white text-slate-700 hover:border-teal-400 hover:bg-teal-50/40'
+                                ? 'border-[#0B57D0] bg-[#0B57D0] text-white font-semibold'
+                                : 'border-[#DADCE0] bg-white text-[#1F1F1F] hover:border-[#0B57D0]/60 hover:bg-[#E8F0FE]/60'
                           }`}
                           title={
                             busyBooking
@@ -700,10 +700,10 @@ export function BookingModal({
                 </div>
 
                 {conflicts.length > 0 && (
-                  <div className="bg-amber-100/80 border border-amber-300 rounded-md px-3 py-2 text-xs text-amber-950 flex items-start gap-2">
-                    <AlertCircle className="w-4 h-4 text-amber-800 shrink-0 mt-0.5" />
+                  <div className="bg-[#FEF7E0] border border-[#FDE293] rounded-xl px-3 py-2 text-xs text-[#1F1F1F] flex items-start gap-2">
+                    <AlertCircle className="w-4 h-4 text-[#B06000] shrink-0 mt-0.5" />
                     <div>
-                      <span className="font-bold">تعارض في نفس الوقت: </span>
+                      <span className="font-bold text-[#B06000]">تعارض في نفس الوقت: </span>
                       <span>
                         الفترة من {formatTime12Ar(form.startTime)} إلى {formatTime12Ar(form.endTime)} تتقاطع مع حجز قائم (
                         {formatTime12Ar(conflicts[0].startTime)} – {formatTime12Ar(conflicts[0].endTime)}). اختر ساعة «متاح» أعلاه.
@@ -715,7 +715,7 @@ export function BookingModal({
             )}
 
             <div>
-              <label className="block text-xs font-medium text-slate-700 mb-1.5">
+              <label className="block text-xs font-medium text-[#444746] mb-1.5">
                 عدد الطلاب المتوقع
               </label>
               <div className="relative">
@@ -727,18 +727,18 @@ export function BookingModal({
                   onChange={(e) =>
                     setForm({ ...form, attendeesCount: Number(e.target.value) || 1 })
                   }
-                  className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm font-mono-num text-slate-900 focus:outline-none focus:border-teal-700"
+                  className="w-full rounded-xl border border-[#DADCE0] bg-white px-3 py-2.5 text-sm font-mono-num text-[#1F1F1F] focus:outline-none focus:border-[#0B57D0] focus:ring-2 focus:ring-[#0B57D0]/15"
                   required
                 />
                 {selectedRoom && (
-                  <span className="mt-1 flex items-center gap-1 text-xs text-slate-500">
+                  <span className="mt-1 flex items-center gap-1 text-xs text-[#747775]">
                     <Users className="w-3.5 h-3.5" />
                     السعة القصوى للقاعة: {selectedRoom.capacity} طالب
                   </span>
                 )}
               </div>
               {capacityExceeded && (
-                <p className="text-xs text-amber-700 mt-1">
+                <p className="text-xs text-[#B06000] mt-1">
                   تنبيه: العدد يتجاوز السعة الاستيعابية للقاعة.
                 </p>
               )}
@@ -746,7 +746,7 @@ export function BookingModal({
 
             {isAdmin && (
               <div>
-                <label className="block text-xs font-medium text-slate-700 mb-1.5">
+                <label className="block text-xs font-medium text-[#444746] mb-1.5">
                   حالة الحجز
                 </label>
                 <select
@@ -754,7 +754,7 @@ export function BookingModal({
                   onChange={(e) =>
                     setForm({ ...form, status: e.target.value as BookingStatus })
                   }
-                  className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 focus:outline-none focus:border-teal-700"
+                  className="w-full rounded-xl border border-[#DADCE0] bg-white px-3 py-2.5 text-sm text-[#1F1F1F] focus:outline-none focus:border-[#0B57D0] focus:ring-2 focus:ring-[#0B57D0]/15"
                 >
                   {(Object.keys(BOOKING_STATUS_LABEL) as BookingStatus[]).map((s) => (
                     <option key={s} value={s}>
@@ -766,7 +766,7 @@ export function BookingModal({
             )}
 
             <div className="sm:col-span-2">
-              <label className="block text-xs font-medium text-slate-700 mb-1.5">
+              <label className="block text-xs font-medium text-[#444746] mb-1.5">
                 متطلبات تقنية أو ملاحظات (اختياري)
               </label>
               <textarea
@@ -775,26 +775,26 @@ export function BookingModal({
                 value={form.notes}
                 onChange={(e) => setForm({ ...form, notes: e.target.value })}
                 placeholder="مثال: الحاجة إلى ميكروفون لاسلكي إضافي أو ربط العرض اللاسلكي..."
-                className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 focus:outline-none focus:border-teal-700 resize-none"
+                className="w-full rounded-xl border border-[#DADCE0] bg-white px-3 py-2 text-sm text-[#1F1F1F] placeholder:text-[#747775] focus:outline-none focus:border-[#0B57D0] focus:ring-2 focus:ring-[#0B57D0]/15 resize-none"
               />
             </div>
           </div>
 
-          <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-200">
+          <div className="flex items-center justify-end gap-3 pt-4 bg-[#F8FAFD] -mx-6 -mb-6 px-6 py-4 border-t border-[#E8EAED] rounded-b-2xl">
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 rounded-lg border border-slate-200 bg-white text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors cursor-pointer"
+              className="px-4 py-2 rounded-xl border border-[#DADCE0] bg-white text-sm font-medium text-[#1F1F1F] hover:bg-[#F0F4F9] transition-colors cursor-pointer"
             >
               إلغاء
             </button>
             <button
               type="submit"
               disabled={saving}
-              className={`px-5 py-2 rounded-lg text-white text-sm font-semibold disabled:opacity-50 transition-colors cursor-pointer ${
+              className={`px-5 py-2 rounded-xl text-white text-sm font-semibold disabled:opacity-50 g-elevation-1 transition-colors cursor-pointer ${
                 conflicts.length > 0
-                  ? 'bg-amber-700 hover:bg-amber-800'
-                  : 'bg-teal-700 hover:bg-teal-800'
+                  ? 'bg-[#B06000] hover:bg-[#8F4E00]'
+                  : 'bg-[#0B57D0] hover:bg-[#0842A0]'
               }`}
             >
               {saving

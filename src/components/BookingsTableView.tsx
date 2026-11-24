@@ -98,9 +98,9 @@ export function BookingsTableView({
 
   if (isLoading) {
     return (
-      <div className="bg-white border border-slate-200 rounded-xl p-6 space-y-3">
+      <div className="bg-white border border-[#DADCE0] rounded-2xl p-6 space-y-3">
         {[1, 2, 3, 4, 5].map((i) => (
-          <div key={i} className="h-11 bg-slate-50 border border-slate-100 rounded-lg" />
+          <div key={i} className="h-11 bg-[#F8FAFD] border border-[#E8EAED] rounded-xl" />
         ))}
       </div>
     );
@@ -109,28 +109,28 @@ export function BookingsTableView({
   return (
     <section className="space-y-4">
       {scopedDepartmentName && (
-        <div className="bg-teal-50/70 border border-teal-200 rounded-xl px-4 py-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs text-teal-900">
+        <div className="bg-[#E8F0FE] border border-[#AECBFA] rounded-2xl px-4 py-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs text-[#041E49]">
           <div>
             تعرض هذه الصفحة حجوزات قسمك فقط (<strong className="font-semibold">{scopedDepartmentName}</strong>) لمتابعة حالة طلبات الحجز.
           </div>
-          <span className="font-mono-num font-semibold text-teal-800 shrink-0">
+          <span className="font-mono-num font-semibold text-[#0B57D0] shrink-0">
             الإجمالي: {bookings.length}
           </span>
         </div>
       )}
 
       {canApprove && pendingCount > 0 && statusFilter !== 'pending' && (
-        <div className="bg-amber-50/80 border border-amber-200 rounded-xl px-4 py-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-          <div className="text-xs text-amber-900 flex items-center gap-2">
-            <Clock className="w-4 h-4 text-amber-700 shrink-0" />
+        <div className="bg-[#FEF7E0] border border-[#FDE293] rounded-2xl px-4 py-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="text-xs text-[#1F1F1F] flex items-center gap-2">
+            <Clock className="w-4 h-4 text-[#B06000] shrink-0" />
             <span>
-              يوجد <strong className="font-mono-num">{pendingCount}</strong> طلب حجز من أقسام العتبة الحسينية المقدسة بانتظار موافقة الإدارة.
+              يوجد <strong className="font-mono-num text-[#B06000]">{pendingCount}</strong> طلب حجز من أقسام العتبة الحسينية المقدسة بانتظار موافقة الإدارة.
             </span>
           </div>
           <button
             type="button"
             onClick={() => onStatusFilterChange('pending')}
-            className="px-3 py-1.5 rounded-lg bg-white border border-amber-300 text-xs font-semibold text-amber-900 hover:bg-amber-100/60 transition-colors whitespace-nowrap shrink-0 cursor-pointer"
+            className="px-3.5 py-1.5 rounded-xl bg-white border border-[#FDE293] text-xs font-semibold text-[#B06000] hover:bg-[#FEF7E0] transition-colors whitespace-nowrap shrink-0 cursor-pointer"
           >
             مراجعة الطلبات المعلقة
           </button>
@@ -138,10 +138,10 @@ export function BookingsTableView({
       )}
 
       {/* Filter Toolbar */}
-      <div className="bg-white border border-slate-200 rounded-xl p-4 flex flex-col xl:flex-row xl:items-center justify-between gap-4">
+      <div className="bg-white border border-[#DADCE0] rounded-2xl p-4 flex flex-col xl:flex-row xl:items-center justify-between gap-4">
         <div className="flex flex-wrap items-center gap-3">
           {/* Status segmented control */}
-          <div className="inline-flex flex-wrap items-center p-1 bg-slate-100 rounded-lg">
+          <div className="inline-flex flex-wrap items-center p-1 bg-[#F0F4F9] rounded-xl">
             {(
               [
                 ['all', 'الكل'],
@@ -155,10 +155,10 @@ export function BookingsTableView({
                 key={val}
                 type="button"
                 onClick={() => onStatusFilterChange(val)}
-                className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors whitespace-nowrap shrink-0 cursor-pointer ${
+                className={`px-3 py-1.5 text-xs rounded-lg transition-colors whitespace-nowrap shrink-0 cursor-pointer ${
                   statusFilter === val
-                    ? 'bg-white text-slate-900 shadow-sm'
-                    : 'text-slate-600 hover:text-slate-900'
+                    ? 'bg-white text-[#0B57D0] font-semibold g-elevation-1'
+                    : 'text-[#444746] font-medium hover:text-[#1F1F1F]'
                 }`}
               >
                 {label}
@@ -167,20 +167,20 @@ export function BookingsTableView({
           </div>
 
           <div className="relative min-w-[220px] flex-1 sm:flex-initial">
-            <Search className="w-4 h-4 text-slate-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+            <Search className="w-4 h-4 text-[#747775] absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
             <input
               type="text"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="بحث بالعنوان، المحاضر، القسم..."
-              className="w-full rounded-lg border border-slate-200 bg-white pr-9 pl-3 py-2 text-xs text-slate-900 focus:outline-none focus:border-teal-700"
+              className="w-full rounded-xl border border-[#DADCE0] bg-white pr-9 pl-3 py-2 text-xs text-[#1F1F1F] placeholder:text-[#747775] focus:outline-none focus:border-[#0B57D0] focus:ring-2 focus:ring-[#0B57D0]/15"
             />
           </div>
 
           <select
             value={roomFilter}
             onChange={(e) => setRoomFilter(e.target.value)}
-            className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs text-slate-800 focus:outline-none focus:border-teal-700"
+            className="rounded-xl border border-[#DADCE0] bg-white px-3 py-2 text-xs text-[#1F1F1F] focus:outline-none focus:border-[#0B57D0] focus:ring-2 focus:ring-[#0B57D0]/15 cursor-pointer"
             aria-label="تصفية القاعة"
           >
             <option value="all">كل القاعات</option>
@@ -196,14 +196,14 @@ export function BookingsTableView({
               type="date"
               value={dateFilter}
               onChange={(e) => setDateFilter(e.target.value)}
-              className="rounded-lg border border-slate-200 bg-white px-2.5 py-2 text-xs font-mono-num text-slate-800 focus:outline-none focus:border-teal-700"
+              className="rounded-xl border border-[#DADCE0] bg-white px-2.5 py-2 text-xs font-mono-num text-[#1F1F1F] focus:outline-none focus:border-[#0B57D0] focus:ring-2 focus:ring-[#0B57D0]/15"
               aria-label="تصفية التاريخ"
             />
             {dateFilter && (
               <button
                 type="button"
                 onClick={() => setDateFilter('')}
-                className="text-xs text-slate-500 hover:text-slate-800 px-2 py-1 cursor-pointer"
+                className="text-xs font-medium text-[#0B57D0] hover:bg-[#E8F0FE] rounded-lg px-2 py-1 transition-colors cursor-pointer"
               >
                 مسح
               </button>
@@ -216,16 +216,16 @@ export function BookingsTableView({
             type="button"
             onClick={() => exportBookingsToCsv(filtered)}
             disabled={filtered.length === 0}
-            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg border border-slate-200 bg-white text-xs font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-50 transition-colors whitespace-nowrap shrink-0 cursor-pointer"
+            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl border border-[#DADCE0] bg-white text-xs font-medium text-[#1F1F1F] hover:bg-[#F0F4F9] disabled:opacity-50 transition-colors whitespace-nowrap shrink-0 cursor-pointer"
           >
-            <Download className="w-4 h-4 text-slate-500" />
+            <Download className="w-4 h-4 text-[#444746]" />
             <span>تصدير CSV</span>
           </button>
           {canCreate && (
             <button
               type="button"
               onClick={onCreateNew}
-              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-teal-700 text-white text-xs font-semibold hover:bg-teal-800 transition-colors whitespace-nowrap shrink-0 cursor-pointer"
+              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[#0B57D0] text-white text-xs font-semibold hover:bg-[#0842A0] transition-colors whitespace-nowrap shrink-0 cursor-pointer g-elevation-1"
             >
               <Plus className="w-4 h-4" />
               <span>حجز جديد</span>
@@ -236,11 +236,11 @@ export function BookingsTableView({
 
       {/* Data Table */}
       {filtered.length === 0 ? (
-        <div className="bg-white border border-slate-200 rounded-xl p-12 text-center space-y-3">
-          <p className="text-sm font-medium text-slate-800">
+        <div className="bg-white border border-[#DADCE0] rounded-2xl p-12 text-center space-y-3">
+          <p className="text-sm font-medium text-[#1F1F1F]">
             لا توجد حجوزات مطابقة للمعايير المحددة
           </p>
-          <p className="text-xs text-slate-500">
+          <p className="text-xs text-[#444746]">
             {canCreate
               ? 'يمكنك تغيير خيارات التصفية أو إنشاء حجز قاعة جديد الآن.'
               : 'لا توجد دورات أو محاضرات مطابقة لخيارات التصفية الحالية.'}
@@ -250,7 +250,7 @@ export function BookingsTableView({
               <button
                 type="button"
                 onClick={onCreateNew}
-                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-teal-700 text-white text-xs font-semibold hover:bg-teal-800 transition-colors cursor-pointer"
+                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[#0B57D0] text-white text-xs font-semibold hover:bg-[#0842A0] transition-colors cursor-pointer"
               >
                 <Plus className="w-4 h-4" />
                 <span>إنشاء أول حجز</span>
@@ -259,21 +259,21 @@ export function BookingsTableView({
           )}
         </div>
       ) : (
-        <div className="bg-white border border-slate-200 rounded-xl overflow-hidden">
+        <div className="bg-white border border-[#DADCE0] rounded-2xl overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full text-right border-collapse min-w-[920px]">
               <thead>
-                <tr className="bg-slate-50 border-b border-slate-200 text-xs font-semibold text-slate-600">
-                  <th className="px-4 py-3">التاريخ والوقت</th>
-                  <th className="px-4 py-3">القاعة</th>
-                  <th className="px-4 py-3">النشاط والمحاضر</th>
-                  <th className="px-4 py-3">القسم الطالب (العتبة الحسينية)</th>
-                  <th className="px-4 py-3 text-left">الطلاب</th>
-                  <th className="px-4 py-3">الحالة</th>
-                  <th className="px-4 py-3 text-left">الإجراءات</th>
+                <tr className="bg-[#F8FAFD] border-b border-[#DADCE0] text-xs font-semibold text-[#444746]">
+                  <th className="px-4 py-3.5">التاريخ والوقت</th>
+                  <th className="px-4 py-3.5">القاعة</th>
+                  <th className="px-4 py-3.5">النشاط والمحاضر</th>
+                  <th className="px-4 py-3.5">القسم الطالب (العتبة الحسينية)</th>
+                  <th className="px-4 py-3.5 text-left">الطلاب</th>
+                  <th className="px-4 py-3.5">الحالة</th>
+                  <th className="px-4 py-3.5 text-left">الإجراءات</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100 text-sm">
+              <tbody className="divide-y divide-[#E8EAED] text-sm">
                 {filtered.map((b) => {
                   const isOwner = b.creatorId === currentUserId;
                   const canEdit =
@@ -286,58 +286,58 @@ export function BookingsTableView({
                   const isBusy = busyId === b.id;
 
                   return (
-                    <tr key={b.id} className="hover:bg-slate-50/70 transition-colors">
+                    <tr key={b.id} className="hover:bg-[#F8FAFD] transition-colors">
                       <td className="px-4 py-3 whitespace-nowrap">
-                        <div className="font-mono-num text-xs font-semibold text-slate-900">
+                        <div className="font-mono-num text-xs font-semibold text-[#1F1F1F]">
                           {b.date}
                         </div>
-                        <div className="font-mono-num text-xs text-slate-500 mt-0.5">
+                        <div className="font-mono-num text-xs text-[#444746] mt-0.5">
                           {formatTime12Ar(b.startTime)} – {formatTime12Ar(b.endTime)}
                         </div>
                       </td>
                       <td className="px-4 py-3">
-                        <div className="text-xs font-semibold text-slate-900">
+                        <div className="text-xs font-semibold text-[#1F1F1F]">
                           {b.roomName}
                         </div>
-                        <div className="text-[11px] text-slate-500 mt-0.5">
+                        <div className="text-[11px] text-[#747775] mt-0.5">
                           {BOOKING_TYPE_LABEL[b.bookingType]}
                         </div>
                       </td>
                       <td className="px-4 py-3 max-w-[260px]">
-                        <div className="text-xs font-semibold text-slate-900 truncate">
+                        <div className="text-xs font-semibold text-[#1F1F1F] truncate">
                           {b.courseTitle}
                         </div>
-                        <div className="text-[11px] text-slate-500 mt-0.5 truncate">
+                        <div className="text-[11px] text-[#444746] mt-0.5 truncate">
                           {b.instructorName}
                         </div>
                       </td>
-                      <td className="px-4 py-3 text-xs text-slate-700">
+                      <td className="px-4 py-3 text-xs text-[#444746]">
                         {b.department}
                       </td>
-                      <td className="px-4 py-3 text-left font-mono-num text-xs font-medium text-slate-800 whitespace-nowrap">
+                      <td className="px-4 py-3 text-left font-mono-num text-xs font-medium text-[#1F1F1F] whitespace-nowrap">
                         {b.attendeesCount}
                       </td>
                       <td className="px-4 py-3 whitespace-nowrap">
                         {b.status === 'confirmed' && (
-                          <span className="inline-flex items-center gap-1.5 text-xs font-medium text-emerald-700">
+                          <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#137333]">
                             <CheckCircle2 className="w-3.5 h-3.5" />
                             {BOOKING_STATUS_LABEL.confirmed}
                           </span>
                         )}
                         {b.status === 'pending' && (
-                          <span className="inline-flex items-center gap-1.5 text-xs font-medium text-amber-700">
+                          <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#B06000]">
                             <Clock className="w-3.5 h-3.5" />
                             {BOOKING_STATUS_LABEL.pending}
                           </span>
                         )}
                         {b.status === 'rejected' && (
-                          <span className="inline-flex items-center gap-1.5 text-xs font-medium text-red-700">
+                          <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#C5221F]">
                             <Ban className="w-3.5 h-3.5" />
                             {BOOKING_STATUS_LABEL.rejected}
                           </span>
                         )}
                         {b.status === 'cancelled' && (
-                          <span className="inline-flex items-center gap-1.5 text-xs font-medium text-slate-500">
+                          <span className="inline-flex items-center gap-1.5 text-xs font-medium text-[#747775]">
                             <XCircle className="w-3.5 h-3.5" />
                             {BOOKING_STATUS_LABEL.cancelled}
                           </span>
@@ -351,7 +351,7 @@ export function BookingsTableView({
                                 type="button"
                                 disabled={isBusy}
                                 onClick={() => handleAction(b.id, () => onApprove(b))}
-                                className="px-2.5 py-1 rounded-md bg-teal-700 text-white text-[11px] font-medium hover:bg-teal-800 disabled:opacity-50 transition-colors cursor-pointer"
+                                className="px-2.5 py-1 rounded-lg bg-[#0B57D0] text-white text-[11px] font-semibold hover:bg-[#0842A0] disabled:opacity-50 transition-colors cursor-pointer"
                               >
                                 موافقة
                               </button>
@@ -359,7 +359,7 @@ export function BookingsTableView({
                                 type="button"
                                 disabled={isBusy}
                                 onClick={() => handleAction(b.id, () => onReject(b))}
-                                className="px-2.5 py-1 rounded-md border border-red-200 bg-white text-red-700 text-[11px] font-medium hover:bg-red-50 disabled:opacity-50 transition-colors cursor-pointer"
+                                className="px-2.5 py-1 rounded-lg border border-[#F6AEA9] bg-white text-[#C5221F] text-[11px] font-semibold hover:bg-[#FCE8E6] disabled:opacity-50 transition-colors cursor-pointer"
                               >
                                 رفض
                               </button>
@@ -370,7 +370,7 @@ export function BookingsTableView({
                               type="button"
                               disabled={isBusy}
                               onClick={() => onEdit(b)}
-                              className="p-1.5 rounded-md text-slate-500 hover:text-slate-900 hover:bg-slate-100 transition-colors cursor-pointer"
+                              className="p-1.5 rounded-lg text-[#444746] hover:text-[#1F1F1F] hover:bg-[#F0F4F9] transition-colors cursor-pointer"
                               title="تعديل"
                             >
                               <Pencil className="w-3.5 h-3.5" />
@@ -381,7 +381,7 @@ export function BookingsTableView({
                               type="button"
                               disabled={isBusy}
                               onClick={() => handleAction(b.id, () => onCancel(b))}
-                              className="p-1.5 rounded-md text-slate-500 hover:text-amber-700 hover:bg-amber-50 transition-colors cursor-pointer"
+                              className="p-1.5 rounded-lg text-[#444746] hover:text-[#B06000] hover:bg-[#FEF7E0] transition-colors cursor-pointer"
                               title="إلغاء الحجز"
                             >
                               <XCircle className="w-3.5 h-3.5" />
@@ -392,7 +392,7 @@ export function BookingsTableView({
                               type="button"
                               disabled={isBusy}
                               onClick={() => handleAction(b.id, () => onDelete(b))}
-                              className="p-1.5 rounded-md text-slate-400 hover:text-red-700 hover:bg-red-50 transition-colors cursor-pointer"
+                              className="p-1.5 rounded-lg text-[#747775] hover:text-[#C5221F] hover:bg-[#FCE8E6] transition-colors cursor-pointer"
                               title="حذف السجل"
                             >
                               <Trash2 className="w-3.5 h-3.5" />

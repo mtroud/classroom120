@@ -47,13 +47,13 @@ const ACTION_LABEL: Record<AuditActionType, string> = {
 };
 
 const ACTION_COLOR_CLASS: Record<AuditActionType, string> = {
-  create: 'text-teal-800',
-  approve: 'text-emerald-700',
-  update: 'text-sky-700',
-  reject: 'text-amber-700',
-  cancel: 'text-amber-700',
-  delete: 'text-red-700',
-  restore: 'text-slate-700',
+  create: 'text-[#0B57D0]',
+  approve: 'text-[#137333]',
+  update: 'text-[#0B57D0]',
+  reject: 'text-[#B06000]',
+  cancel: 'text-[#B06000]',
+  delete: 'text-[#C5221F]',
+  restore: 'text-[#444746]',
 };
 
 export function resolveAuditTimestampMs(ts: unknown): number {
@@ -254,11 +254,11 @@ export function AuditLogView({
 
   if (isLoading) {
     return (
-      <div className="bg-white border border-slate-200 rounded-xl p-6 space-y-4">
-        <div className="h-8 bg-slate-100 rounded-lg w-60" />
+      <div className="bg-white border border-[#DADCE0] rounded-2xl p-6 space-y-4">
+        <div className="h-8 bg-[#F0F4F9] rounded-xl w-60" />
         <div className="space-y-2.5">
           {[1, 2, 3, 4, 5].map((i) => (
-            <div key={i} className="h-11 bg-slate-50 border border-slate-100 rounded-lg" />
+            <div key={i} className="h-11 bg-[#F8FAFD] border border-[#E8EAED] rounded-xl" />
           ))}
         </div>
       </div>
@@ -268,22 +268,22 @@ export function AuditLogView({
   return (
     <section className="space-y-5">
       {/* Print Header */}
-      <div className="hidden print:block border-b border-slate-300 pb-3">
-        <h1 className="font-display text-xl font-bold text-slate-900">
+      <div className="hidden print:block border-b border-[#DADCE0] pb-3">
+        <h1 className="font-display text-xl font-bold text-[#1F1F1F]">
           {settings.reportHeaderTitle} — سجل العمليات والتدقيق الإداري
         </h1>
-        <p className="text-xs text-slate-600 mt-1">
+        <p className="text-xs text-[#444746] mt-1">
           تاريخ الطباعة: {todayISO} · عدد السجلات المعروضة: {filteredLogs.length}
         </p>
       </div>
 
       {/* Header & Actions */}
-      <div className="bg-white border border-slate-200 rounded-xl p-5 flex flex-col lg:flex-row lg:items-center justify-between gap-4 no-print">
+      <div className="bg-white border border-[#DADCE0] rounded-2xl p-5 flex flex-col lg:flex-row lg:items-center justify-between gap-4 no-print">
         <div>
-          <h2 className="font-display text-base font-bold text-slate-900">
+          <h2 className="font-display text-base font-bold text-[#1F1F1F]">
             سجل العمليات والتدقيق (Audit Log)
           </h2>
-          <p className="text-xs text-slate-500 mt-1">
+          <p className="text-xs text-[#747775] mt-1">
             توثيق زمني غير قابل للتعديل لعمليات حجز القاعات وتعديلها واعتمادها أو حذفها مع تحديد المنفذ والوقت الدقيق.
           </p>
         </div>
@@ -293,18 +293,18 @@ export function AuditLogView({
             type="button"
             onClick={handleExportCsv}
             disabled={filteredLogs.length === 0}
-            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg border border-slate-200 bg-white text-xs font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-50 transition-colors whitespace-nowrap shrink-0 cursor-pointer"
+            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl border border-[#DADCE0] bg-white text-xs font-medium text-[#1F1F1F] hover:bg-[#F0F4F9] disabled:opacity-50 transition-colors whitespace-nowrap shrink-0 cursor-pointer"
           >
-            <Download className="w-4 h-4 text-slate-500" />
+            <Download className="w-4 h-4 text-[#444746]" />
             <span>تصدير CSV</span>
           </button>
           <button
             type="button"
             onClick={() => window.print()}
             disabled={filteredLogs.length === 0}
-            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg border border-slate-200 bg-white text-xs font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-50 transition-colors whitespace-nowrap shrink-0 cursor-pointer"
+            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl border border-[#DADCE0] bg-white text-xs font-medium text-[#1F1F1F] hover:bg-[#F0F4F9] disabled:opacity-50 transition-colors whitespace-nowrap shrink-0 cursor-pointer"
           >
-            <Printer className="w-4 h-4 text-slate-500" />
+            <Printer className="w-4 h-4 text-[#444746]" />
             <span>طباعة السجل</span>
           </button>
         </div>
@@ -312,45 +312,45 @@ export function AuditLogView({
 
       {/* Audit Summary Row */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 no-print">
-        <div className="bg-white border border-slate-200 rounded-xl p-4">
-          <div className="text-xs text-slate-500">إجمالي العمليات المسجلة</div>
-          <div className="font-mono-num text-2xl font-semibold text-slate-900 mt-1">
+        <div className="bg-white border border-[#DADCE0] rounded-2xl p-4">
+          <div className="text-xs text-[#444746]">إجمالي العمليات المسجلة</div>
+          <div className="font-mono-num text-2xl font-semibold text-[#1F1F1F] mt-1">
             {stats.total}
           </div>
         </div>
-        <div className="bg-white border border-slate-200 rounded-xl p-4">
-          <div className="text-xs text-slate-500">عمليات الحجز والجدول</div>
-          <div className="font-mono-num text-2xl font-semibold text-teal-800 mt-1">
+        <div className="bg-white border border-[#DADCE0] rounded-2xl p-4">
+          <div className="text-xs text-[#444746]">عمليات الحجز والجدول</div>
+          <div className="font-mono-num text-2xl font-semibold text-[#0B57D0] mt-1">
             {stats.bookingOps}
           </div>
         </div>
-        <div className="bg-white border border-slate-200 rounded-xl p-4">
-          <div className="text-xs text-slate-500">عمليات القاعات المجهزة</div>
-          <div className="font-mono-num text-2xl font-semibold text-slate-900 mt-1">
+        <div className="bg-white border border-[#DADCE0] rounded-2xl p-4">
+          <div className="text-xs text-[#444746]">عمليات القاعات المجهزة</div>
+          <div className="font-mono-num text-2xl font-semibold text-[#137333] mt-1">
             {stats.classroomOps}
           </div>
         </div>
-        <div className="bg-white border border-slate-200 rounded-xl p-4">
-          <div className="text-xs text-slate-500">عمليات اليوم</div>
-          <div className="font-mono-num text-2xl font-semibold text-amber-700 mt-1">
+        <div className="bg-white border border-[#DADCE0] rounded-2xl p-4">
+          <div className="text-xs text-[#444746]">عمليات اليوم</div>
+          <div className="font-mono-num text-2xl font-semibold text-[#B06000] mt-1">
             {stats.todayOps}
           </div>
         </div>
       </div>
 
       {/* Filters Toolbar */}
-      <div className="bg-white border border-slate-200 rounded-xl p-4 space-y-3 no-print">
+      <div className="bg-white border border-[#DADCE0] rounded-2xl p-4 space-y-3 no-print">
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <div className="inline-flex flex-wrap items-center gap-1 p-1 bg-slate-100 rounded-lg">
+          <div className="inline-flex flex-wrap items-center gap-1 p-1 bg-[#F0F4F9] rounded-xl">
             {entityTabs.map((tab) => (
               <button
                 key={tab.id}
                 type="button"
                 onClick={() => setEntityFilter(tab.id)}
-                className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors whitespace-nowrap shrink-0 cursor-pointer ${
+                className={`px-3 py-1.5 text-xs rounded-lg transition-colors whitespace-nowrap shrink-0 cursor-pointer ${
                   entityFilter === tab.id
-                    ? 'bg-white text-slate-900 shadow-sm'
-                    : 'text-slate-600 hover:text-slate-900'
+                    ? 'bg-white text-[#0B57D0] font-semibold g-elevation-1'
+                    : 'text-[#444746] font-medium hover:text-[#1F1F1F]'
                 }`}
               >
                 {tab.label}
@@ -358,20 +358,20 @@ export function AuditLogView({
             ))}
           </div>
 
-          <div className="text-xs font-mono-num text-slate-500">
+          <div className="text-xs font-mono-num text-[#747775]">
             عرض {filteredLogs.length} من {sortedLogs.length}
           </div>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-12 gap-3">
           <div className="md:col-span-6 relative">
-            <Search className="w-4 h-4 text-slate-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+            <Search className="w-4 h-4 text-[#747775] absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
             <input
               type="text"
               value={searchText}
               onChange={(e) => setSearchText(e.target.value)}
               placeholder="ابحث باسم المستخدم، الشعبة، القاعة، عنوان الدورة، أو تفاصيل العملية..."
-              className="w-full pr-9 pl-3 py-2 text-xs border border-slate-200 rounded-lg focus:outline-none focus:border-teal-700"
+              className="w-full pr-9 pl-3 py-2 text-xs border border-[#DADCE0] bg-white text-[#1F1F1F] placeholder:text-[#747775] rounded-xl focus:outline-none focus:border-[#0B57D0] focus:ring-2 focus:ring-[#0B57D0]/15"
             />
           </div>
 
@@ -379,7 +379,7 @@ export function AuditLogView({
             <select
               value={actionFilter}
               onChange={(e) => setActionFilter(e.target.value as 'all' | AuditActionType)}
-              className="w-full px-3 py-2 text-xs border border-slate-200 rounded-lg bg-white text-slate-800 focus:outline-none focus:border-teal-700"
+              className="w-full px-3 py-2 text-xs border border-[#DADCE0] rounded-xl bg-white text-[#1F1F1F] focus:outline-none focus:border-[#0B57D0] focus:ring-2 focus:ring-[#0B57D0]/15"
               aria-label="تصفية حسب نوع العملية"
             >
               <option value="all">جميع أنواع العمليات</option>
@@ -398,7 +398,7 @@ export function AuditLogView({
               type="date"
               value={dateFilter}
               onChange={(e) => setDateFilter(e.target.value)}
-              className="flex-1 px-3 py-2 text-xs font-mono-num border border-slate-200 rounded-lg text-slate-800 focus:outline-none focus:border-teal-700"
+              className="flex-1 px-3 py-2 text-xs font-mono-num border border-[#DADCE0] rounded-xl bg-white text-[#1F1F1F] focus:outline-none focus:border-[#0B57D0] focus:ring-2 focus:ring-[#0B57D0]/15"
               aria-label="تصفية حسب تاريخ العملية"
             />
             {(dateFilter || searchText || actionFilter !== 'all' || entityFilter !== 'all') && (
@@ -410,7 +410,7 @@ export function AuditLogView({
                   setActionFilter('all');
                   setEntityFilter('all');
                 }}
-                className="px-2.5 py-2 text-xs font-medium text-slate-600 hover:text-slate-900 border border-slate-200 rounded-lg hover:bg-slate-50 whitespace-nowrap shrink-0 cursor-pointer"
+                className="px-2.5 py-2 text-xs font-medium text-[#444746] hover:text-[#1F1F1F] border border-[#DADCE0] rounded-xl hover:bg-[#F0F4F9] whitespace-nowrap shrink-0 cursor-pointer"
               >
                 مسح
               </button>
@@ -420,16 +420,16 @@ export function AuditLogView({
       </div>
 
       {/* Audit Log Table */}
-      <div className="bg-white border border-slate-200 rounded-xl overflow-hidden">
+      <div className="bg-white border border-[#DADCE0] rounded-2xl overflow-hidden">
         {filteredLogs.length === 0 ? (
           <div className="p-12 text-center space-y-2">
-            <History className="w-8 h-8 text-slate-300 mx-auto" />
-            <p className="text-sm font-medium text-slate-700">
+            <History className="w-8 h-8 text-[#9AA0A6] mx-auto" />
+            <p className="text-sm font-medium text-[#1F1F1F]">
               {sortedLogs.length === 0
                 ? 'لا توجد عمليات مسجلة في سجل التدقيق حتى الآن.'
                 : 'لا توجد نتائج تطابق شروط البحث والتصفية المحددة.'}
             </p>
-            <p className="text-xs text-slate-500">
+            <p className="text-xs text-[#747775]">
               تُسجّل تلقائياً جميع عمليات حجز القاعات وتعديلها والموافقة عليها وحذفها فور تنفيذها مع الطابع الزمني.
             </p>
           </div>
@@ -437,7 +437,7 @@ export function AuditLogView({
           <div className="overflow-x-auto">
             <table className="w-full text-right border-collapse min-w-[920px]">
               <thead>
-                <tr className="bg-slate-50 border-b border-slate-200 text-[11px] font-semibold text-slate-600">
+                <tr className="bg-[#F8FAFD] border-b border-[#DADCE0] text-[11px] font-semibold text-[#444746]">
                   <th className="px-4 py-3 whitespace-nowrap">الطابع الزمني</th>
                   <th className="px-4 py-3 whitespace-nowrap">نوع العملية</th>
                   <th className="px-4 py-3 whitespace-nowrap">القسم والعنصر</th>
@@ -445,16 +445,16 @@ export function AuditLogView({
                   <th className="px-4 py-3 whitespace-nowrap">المستخدم المنفذ</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100 text-xs">
+              <tbody className="divide-y divide-[#E8EAED] text-xs">
                 {filteredLogs.map((entry) => {
                   const ms = resolveAuditTimestampMs(entry.createdAt);
                   return (
-                    <tr key={entry.id} className="hover:bg-slate-50/60 transition-colors">
+                    <tr key={entry.id} className="hover:bg-[#F8FAFD] transition-colors">
                       <td className="px-4 py-3 whitespace-nowrap align-top">
-                        <div className="font-mono-num font-medium text-slate-900">
+                        <div className="font-mono-num font-medium text-[#1F1F1F]">
                           {formatAuditDatePart(ms)}
                         </div>
-                        <div className="font-mono-num text-[11px] text-slate-500 mt-0.5">
+                        <div className="font-mono-num text-[11px] text-[#747775] mt-0.5">
                           {formatAuditTimePart(ms)}
                         </div>
                       </td>
@@ -469,23 +469,23 @@ export function AuditLogView({
                       </td>
 
                       <td className="px-4 py-3 align-top max-w-[240px]">
-                        <div className="text-[11px] text-slate-500">
+                        <div className="text-[11px] text-[#747775]">
                           {ENTITY_TYPE_LABEL[entry.entityType]}
                         </div>
-                        <div className="font-semibold text-slate-900 mt-0.5 truncate" title={entry.entityLabel}>
+                        <div className="font-semibold text-[#1F1F1F] mt-0.5 truncate" title={entry.entityLabel}>
                           {entry.entityLabel}
                         </div>
                       </td>
 
-                      <td className="px-4 py-3 align-top text-slate-700 leading-relaxed max-w-[340px]">
+                      <td className="px-4 py-3 align-top text-[#444746] leading-relaxed max-w-[340px]">
                         {entry.summary}
                       </td>
 
                       <td className="px-4 py-3 whitespace-nowrap align-top">
-                        <div className="font-semibold text-slate-900">
+                        <div className="font-semibold text-[#1F1F1F]">
                           {entry.actorName}
                         </div>
-                        <div className="text-[11px] text-slate-500 mt-0.5 flex items-center gap-1.5">
+                        <div className="text-[11px] text-[#747775] mt-0.5 flex items-center gap-1.5">
                           <span>{entry.branchName}</span>
                           <span aria-hidden="true">·</span>
                           <span>{ROLE_LABEL_AR[entry.actorRole] || entry.actorRole}</span>
@@ -502,7 +502,7 @@ export function AuditLogView({
 
       {/* Print Footer */}
       {settings.reportFooterNote && (
-        <div className="hidden print:block text-center text-xs text-slate-500 pt-4 border-t border-slate-200">
+        <div className="hidden print:block text-center text-xs text-[#747775] pt-4 border-t border-[#DADCE0]">
           {settings.reportFooterNote}
         </div>
       )}

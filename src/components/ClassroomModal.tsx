@@ -103,20 +103,20 @@ export function ClassroomModal({
 
   return (
     <div
-      className="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-[2px] flex items-center justify-center p-4"
+      className="fixed inset-0 z-50 bg-[#1F1F1F]/45 backdrop-blur-[2px] flex items-center justify-center p-4"
       role="dialog"
       aria-modal="true"
       aria-labelledby="classroom-modal-title"
     >
-      <div className="bg-white border border-slate-200 rounded-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200">
-          <h2 id="classroom-modal-title" className="font-display text-lg font-bold text-slate-900">
+      <div className="bg-white border border-[#DADCE0] rounded-2xl g-elevation-modal max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+        <div className="flex items-center justify-between px-6 py-4 bg-[#F8FAFD] border-b border-[#E8EAED]">
+          <h2 id="classroom-modal-title" className="font-display text-lg font-bold text-[#1F1F1F]">
             {form.id ? 'تعديل بيانات القاعة المجهزة' : 'إضافة قاعة دراسية جديدة'}
           </h2>
           <button
             type="button"
             onClick={onClose}
-            className="p-2 rounded-lg text-slate-500 hover:bg-slate-100 hover:text-slate-900 transition-colors cursor-pointer"
+            className="p-2 rounded-xl text-[#444746] hover:bg-[#E8EAED]/60 hover:text-[#1F1F1F] transition-colors cursor-pointer"
             aria-label="إغلاق"
           >
             <X className="w-5 h-5" />
@@ -125,7 +125,7 @@ export function ClassroomModal({
 
         <form onSubmit={handleSubmit} className="p-6 space-y-5">
           {errorMsg && (
-            <div className="bg-red-50 border border-red-200 rounded-lg px-4 py-3 text-sm text-red-800 flex items-center gap-2">
+            <div className="bg-[#FCE8E6] border border-[#F6AEA9] rounded-xl px-4 py-3 text-sm text-[#C5221F] flex items-center gap-2" role="alert">
               <AlertCircle className="w-4 h-4 shrink-0" />
               <span>{errorMsg}</span>
             </div>
@@ -133,7 +133,7 @@ export function ClassroomModal({
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="sm:col-span-2">
-              <label className="block text-xs font-medium text-slate-700 mb-1.5">
+              <label className="block text-xs font-medium text-[#444746] mb-1.5">
                 اسم القاعة الدراسية
               </label>
               <input
@@ -142,13 +142,13 @@ export function ClassroomModal({
                 value={form.name}
                 onChange={(e) => setForm({ ...form, name: e.target.value })}
                 placeholder="مثال: قاعة الشهيد الصدر (ع) الكبرى"
-                className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 focus:outline-none focus:border-teal-700"
+                className="w-full rounded-xl border border-[#DADCE0] bg-white px-3 py-2.5 text-sm text-[#1F1F1F] placeholder:text-[#747775] focus:outline-none focus:border-[#0B57D0] focus:ring-2 focus:ring-[#0B57D0]/15"
                 required
               />
             </div>
 
             <div>
-              <label className="block text-xs font-medium text-slate-700 mb-1.5">
+              <label className="block text-xs font-medium text-[#444746] mb-1.5">
                 الرمز التعريفي للقاعة
               </label>
               <input
@@ -157,13 +157,13 @@ export function ClassroomModal({
                 value={form.code}
                 onChange={(e) => setForm({ ...form, code: e.target.value })}
                 placeholder="SH-101"
-                className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm font-mono-num text-slate-900 focus:outline-none focus:border-teal-700"
+                className="w-full rounded-xl border border-[#DADCE0] bg-white px-3 py-2.5 text-sm font-mono-num text-[#1F1F1F] placeholder:text-[#747775] focus:outline-none focus:border-[#0B57D0] focus:ring-2 focus:ring-[#0B57D0]/15"
                 required
               />
             </div>
 
             <div>
-              <label className="block text-xs font-medium text-slate-700 mb-1.5">
+              <label className="block text-xs font-medium text-[#444746] mb-1.5">
                 الطابق / الموقع
               </label>
               <input
@@ -172,13 +172,13 @@ export function ClassroomModal({
                 value={form.floor}
                 onChange={(e) => setForm({ ...form, floor: e.target.value })}
                 placeholder="الطابق الأول"
-                className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 focus:outline-none focus:border-teal-700"
+                className="w-full rounded-xl border border-[#DADCE0] bg-white px-3 py-2.5 text-sm text-[#1F1F1F] placeholder:text-[#747775] focus:outline-none focus:border-[#0B57D0] focus:ring-2 focus:ring-[#0B57D0]/15"
                 required
               />
             </div>
 
             <div>
-              <label className="block text-xs font-medium text-slate-700 mb-1.5">
+              <label className="block text-xs font-medium text-[#444746] mb-1.5">
                 السعة الاستيعابية (عدد الطلاب)
               </label>
               <input
@@ -189,13 +189,13 @@ export function ClassroomModal({
                 onChange={(e) =>
                   setForm({ ...form, capacity: Number(e.target.value) || 1 })
                 }
-                className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm font-mono-num text-slate-900 focus:outline-none focus:border-teal-700"
+                className="w-full rounded-xl border border-[#DADCE0] bg-white px-3 py-2.5 text-sm font-mono-num text-[#1F1F1F] focus:outline-none focus:border-[#0B57D0] focus:ring-2 focus:ring-[#0B57D0]/15"
                 required
               />
             </div>
 
             <div>
-              <label className="block text-xs font-medium text-slate-700 mb-1.5">
+              <label className="block text-xs font-medium text-[#444746] mb-1.5">
                 حالة التشغيل
               </label>
               <select
@@ -203,7 +203,7 @@ export function ClassroomModal({
                 onChange={(e) =>
                   setForm({ ...form, status: e.target.value as ClassroomStatus })
                 }
-                className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 focus:outline-none focus:border-teal-700"
+                className="w-full rounded-xl border border-[#DADCE0] bg-white px-3 py-2.5 text-sm text-[#1F1F1F] focus:outline-none focus:border-[#0B57D0] focus:ring-2 focus:ring-[#0B57D0]/15"
               >
                 {(Object.keys(CLASSROOM_STATUS_LABEL) as ClassroomStatus[]).map((s) => (
                   <option key={s} value={s}>
@@ -214,7 +214,7 @@ export function ClassroomModal({
             </div>
 
             <div className="sm:col-span-2">
-              <label className="block text-xs font-medium text-slate-700 mb-2">
+              <label className="block text-xs font-medium text-[#444746] mb-2">
                 صورة القاعة
               </label>
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
@@ -225,10 +225,10 @@ export function ClassroomModal({
                       key={preset.url}
                       type="button"
                       onClick={() => setForm({ ...form, imageUrl: preset.url })}
-                      className={`rounded-lg overflow-hidden border text-right transition-colors cursor-pointer ${
+                      className={`rounded-xl overflow-hidden border text-right transition-colors cursor-pointer ${
                         selected
-                          ? 'border-teal-700 ring-2 ring-teal-700/20'
-                          : 'border-slate-200 hover:border-slate-300'
+                          ? 'border-[#0B57D0] ring-2 ring-[#0B57D0]/20'
+                          : 'border-[#DADCE0] hover:border-[#0B57D0]/50'
                       }`}
                     >
                       <div className="aspect-[4/3] w-full">
@@ -238,7 +238,7 @@ export function ClassroomModal({
                           className="w-full h-full"
                         />
                       </div>
-                      <div className="px-2 py-1.5 text-[11px] font-medium text-slate-700 truncate bg-white">
+                      <div className="px-2 py-1.5 text-[11px] font-medium text-[#1F1F1F] truncate bg-white">
                         {preset.label}
                       </div>
                     </button>
@@ -248,7 +248,7 @@ export function ClassroomModal({
             </div>
 
             <div className="sm:col-span-2">
-              <label className="block text-xs font-medium text-slate-700 mb-1.5">
+              <label className="block text-xs font-medium text-[#444746] mb-1.5">
                 الوسائل التعليمية والتقنية المتوفرة ({form.equipment.length}/10)
               </label>
               <div className="flex gap-2 mb-2.5">
@@ -264,28 +264,28 @@ export function ClassroomModal({
                     }
                   }}
                   placeholder="أضف وسيلة تعليمية (مثال: سبورة ذكية تفاعلية)"
-                  className="flex-1 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 focus:outline-none focus:border-teal-700"
+                  className="flex-1 rounded-xl border border-[#DADCE0] bg-white px-3 py-2 text-sm text-[#1F1F1F] placeholder:text-[#747775] focus:outline-none focus:border-[#0B57D0] focus:ring-2 focus:ring-[#0B57D0]/15"
                 />
                 <button
                   type="button"
                   onClick={handleAddEquipment}
-                  className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-slate-900 text-white text-xs font-medium hover:bg-slate-800 transition-colors shrink-0 cursor-pointer"
+                  className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-[#1F1F1F] text-white text-xs font-medium hover:bg-[#333333] transition-colors shrink-0 cursor-pointer"
                 >
                   <Plus className="w-4 h-4" />
                   <span>إضافة</span>
                 </button>
               </div>
-              <div className="divide-y divide-slate-100 border border-slate-200 rounded-lg bg-slate-50/50">
+              <div className="divide-y divide-[#E8EAED] border border-[#E8EAED] rounded-xl bg-[#F8FAFD]">
                 {form.equipment.map((item, idx) => (
                   <div
                     key={`${item}-${idx}`}
-                    className="flex items-center justify-between px-3 py-2 text-sm text-slate-700"
+                    className="flex items-center justify-between px-3 py-2 text-sm text-[#1F1F1F]"
                   >
                     <span>{item}</span>
                     <button
                       type="button"
                       onClick={() => handleRemoveEquipment(idx)}
-                      className="text-slate-400 hover:text-red-600 transition-colors p-1 cursor-pointer"
+                      className="text-[#747775] hover:text-[#C5221F] transition-colors p-1 cursor-pointer"
                       aria-label={`حذف ${item}`}
                     >
                       <Trash2 className="w-4 h-4" />
@@ -296,7 +296,7 @@ export function ClassroomModal({
             </div>
 
             <div className="sm:col-span-2">
-              <label className="block text-xs font-medium text-slate-700 mb-1.5">
+              <label className="block text-xs font-medium text-[#444746] mb-1.5">
                 وصف وملاحظات إضافية
               </label>
               <textarea
@@ -305,23 +305,23 @@ export function ClassroomModal({
                 value={form.notes}
                 onChange={(e) => setForm({ ...form, notes: e.target.value })}
                 placeholder="تفاصيل إضافية حول استخدام القاعة أو مواصفاتها..."
-                className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 focus:outline-none focus:border-teal-700 resize-none"
+                className="w-full rounded-xl border border-[#DADCE0] bg-white px-3 py-2 text-sm text-[#1F1F1F] placeholder:text-[#747775] focus:outline-none focus:border-[#0B57D0] focus:ring-2 focus:ring-[#0B57D0]/15 resize-none"
               />
             </div>
           </div>
 
-          <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-200">
+          <div className="flex items-center justify-end gap-3 pt-4 bg-[#F8FAFD] -mx-6 -mb-6 px-6 py-4 border-t border-[#E8EAED] rounded-b-2xl">
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 rounded-lg border border-slate-200 bg-white text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors cursor-pointer"
+              className="px-4 py-2 rounded-xl border border-[#DADCE0] bg-white text-sm font-medium text-[#1F1F1F] hover:bg-[#F0F4F9] transition-colors cursor-pointer"
             >
               إلغاء
             </button>
             <button
               type="submit"
               disabled={saving}
-              className="px-5 py-2 rounded-lg bg-teal-700 text-white text-sm font-semibold hover:bg-teal-800 disabled:opacity-50 transition-colors cursor-pointer"
+              className="px-5 py-2 rounded-xl bg-[#0B57D0] text-white text-sm font-semibold hover:bg-[#0842A0] g-elevation-1 disabled:opacity-50 transition-colors cursor-pointer"
             >
               {saving ? 'جاري الحفظ...' : form.id ? 'تحديث القاعة' : 'إضافة القاعة'}
             </button>

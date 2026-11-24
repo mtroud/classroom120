@@ -26,7 +26,9 @@ service cloud.firestore {
 
     function isPasswordProvider() {
       return isSignedIn() &&
-        request.auth.token.firebase != null &&
+        ('firebase' in request.auth.token) &&
+        request.auth.token.firebase is map &&
+        ('sign_in_provider' in request.auth.token.firebase) &&
         request.auth.token.firebase.sign_in_provider == 'password';
     }
 
@@ -65,6 +67,8 @@ service cloud.firestore {
       return isPasswordProvider() &&
         hasAccountEmailToken() &&
         exists(/databases/$(database)/documents/accounts/$(accountDocId())) &&
+        ('authType' in myAccount()) &&
+        ('authUid' in myAccount()) &&
         myAccount().authType == 'credentials' &&
         myAccount().authUid == request.auth.uid;
     }
@@ -96,6 +100,9 @@ service cloud.firestore {
         hasAccountDoc() &&
         myAccount().status == 'active' &&
         myAccount().role == 'branch_supervisor' &&
+        ('permissions' in myAccount()) &&
+        myAccount().permissions is map &&
+        (perm in myAccount().permissions) &&
         myAccount().permissions[perm] == true
       );
     }
@@ -107,7 +114,10 @@ service cloud.firestore {
     function isCoordinatorForOwnDepartment(dept) {
       return !hasAccountDoc() ||
         myAccount().role != 'coordinator' ||
+        !('branchName' in myAccount()) ||
+        !(myAccount().branchName is string) ||
         myAccount().branchName.trim().size() < 2 ||
+        dept == myAccount().branchName ||
         dept.trim() == myAccount().branchName.trim();
     }
 
