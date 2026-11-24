@@ -822,6 +822,40 @@ function DashboardWorkspace() {
     selectedDate,
   ]);
 
+  const isTabAllowed = useMemo(
+    () => (tab: ViewTab) => {
+      if (tab === 'schedule') return true;
+      if (tab === 'bookings') return access.canViewBookingsTab;
+      if (tab === 'classrooms') return access.canViewClassroomsTab;
+      if (tab === 'departments') return access.canViewDepartmentsTab;
+      if (tab === 'reports') return access.canViewReports;
+      if (tab === 'audit') return access.canViewAuditLog;
+      if (tab === 'accounts') return access.canManageAccounts;
+      if (tab === 'settings') return access.canManageSettings;
+      return false;
+    },
+    [access]
+  );
+
+  useEffect(() => {
+    if (
+      authReady &&
+      user &&
+      myAccountResolved &&
+      !access.isAccessBlocked &&
+      !isTabAllowed(activeTab)
+    ) {
+      setActiveTab('schedule');
+    }
+  }, [
+    authReady,
+    user,
+    myAccountResolved,
+    access.isAccessBlocked,
+    activeTab,
+    isTabAllowed,
+  ]);
+
   // Booking CRUD
   const openNewBooking = (
     roomId?: string,
@@ -2030,27 +2064,6 @@ function DashboardWorkspace() {
       </div>
     );
   }
-
-  const isTabAllowed = useMemo(
-    () => (tab: ViewTab) => {
-      if (tab === 'schedule') return true;
-      if (tab === 'bookings') return access.canViewBookingsTab;
-      if (tab === 'classrooms') return access.canViewClassroomsTab;
-      if (tab === 'departments') return access.canViewDepartmentsTab;
-      if (tab === 'reports') return access.canViewReports;
-      if (tab === 'audit') return access.canViewAuditLog;
-      if (tab === 'accounts') return access.canManageAccounts;
-      if (tab === 'settings') return access.canManageSettings;
-      return false;
-    },
-    [access]
-  );
-
-  useEffect(() => {
-    if (!isTabAllowed(activeTab)) {
-      setActiveTab('schedule');
-    }
-  }, [activeTab, isTabAllowed]);
 
   const navItems: { id: ViewTab; label: string; icon: typeof CalendarDays; badge?: number }[] = [
     { id: 'schedule', label: 'الجدول الدراسي', icon: CalendarDays },
