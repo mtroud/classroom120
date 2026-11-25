@@ -124,6 +124,7 @@ function generateSafeId(prefix: string): string {
 function DashboardWorkspace() {
   const [authReady, setAuthReady] = useState(false);
   const [user, setUser] = useState<User | null>(null);
+  const [activeSignInProvider, setActiveSignInProvider] = useState<string | null>(null);
   const [authError, setAuthError] = useState<string | null>(null);
   const [hasAdminsDoc, setHasAdminsDoc] = useState(false);
   const [myAccountDoc, setMyAccountDoc] = useState<AccountRecord | null>(null);
@@ -224,10 +225,14 @@ function DashboardWorkspace() {
     }, 3500);
   }, []);
 
-  const isPasswordUser = useMemo(
-    () => Boolean(user?.providerData?.some((p) => p.providerId === 'password')),
-    [user]
-  );
+  const isPasswordUser = useMemo(() => {
+    if (!user) return false;
+    if (activeSignInProvider) {
+      return activeSignInProvider === 'password';
+    }
+    const providers = user.providerData?.map((p) => p.providerId) || [];
+    return providers.includes('password') && !providers.includes('google.com');
+  }, [user, activeSignInProvider]);
 
   const isUnverifiedBootstrappedAdmin = useMemo(
     () =>
@@ -254,11 +259,14 @@ function DashboardWorkspace() {
 
   // Auth listener & admin doc check
   useEffect(() => {
+    let authSeq = 0;
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
-      setUser(firebaseUser);
-      setAuthReady(true);
+      const seq = ++authSeq;
 
       if (!firebaseUser) {
+        setActiveSignInProvider(null);
+        setUser(null);
+        setAuthReady(true);
         setHasAdminsDoc(false);
         setMyAccountDoc(null);
         setMyAccountResolved(false);
@@ -281,8 +289,26 @@ function DashboardWorkspace() {
         return;
       }
 
+      let resolvedProvider: string | null = null;
+      try {
+        const tokenResult = await firebaseUser.getIdTokenResult();
+        resolvedProvider = tokenResult.signInProvider || null;
+      } catch {
+        resolvedProvider = null;
+      }
+      if (seq !== authSeq) return;
+
+      const isPwd =
+        resolvedProvider !== null
+          ? resolvedProvider === 'password'
+          : firebaseUser.providerData.some((p) => p.providerId === 'password') &&
+            !firebaseUser.providerData.some((p) => p.providerId === 'google.com');
+
+      setActiveSignInProvider(resolvedProvider);
+      setUser(firebaseUser);
+      setAuthReady(true);
       setMyAccountResolved(false);
-      const isPwd = firebaseUser.providerData.some((p) => p.providerId === 'password');
+
       const bootstrapped =
         Boolean(firebaseUser.emailVerified) &&
         firebaseUser.email?.toLowerCase() === BOOTSTRAPPED_ADMIN_EMAIL;
@@ -296,10 +322,14 @@ function DashboardWorkspace() {
           adminFlag = false;
         }
       }
+      if (seq !== authSeq) return;
       setHasAdminsDoc(adminFlag);
     });
 
-    return () => unsubscribe();
+    return () => {
+      authSeq += 1;
+      unsubscribe();
+    };
   }, []);
 
   // Provision private profile once account/access state is resolved & active
@@ -398,7 +428,7 @@ function DashboardWorkspace() {
   useEffect(() => {
     if (!authReady || !user) return;
 
-    const isPwd = user.providerData.some((p) => p.providerId === 'password');
+    const isPwd = isPasswordUser;
     const verifiedNow = Boolean(user.emailVerified);
     const isMainAdminEmail = user.email?.toLowerCase() === BOOTSTRAPPED_ADMIN_EMAIL;
 
@@ -715,7 +745,7 @@ function DashboardWorkspace() {
       unsubAuditPrimary();
       unsubAuditOwn();
     };
-  }, [authReady, user, seedDefaultWorkspace, seedDefaultDepartments]);
+  }, [authReady, user, isPasswordUser, seedDefaultWorkspace, seedDefaultDepartments]);
 
   const recordAuditLog = useCallback(
     async (params: {
@@ -1037,7 +1067,10 @@ function DashboardWorkspace() {
     if (access.role === 'viewer') {
       throw new Error(translateFirestoreBookingErrorAr(null, { isViewer: true }));
     }
-    if (isPasswordUser) {
+    const requiresLinkedPasswordAccount =
+      isPasswordUser && !access.isBootstrappedAdmin && !hasAdminsDoc;
+
+    if (requiresLinkedPasswordAccount) {
       if (!myAccountDoc) {
         throw new Error(
           translateFirestoreBookingErrorAr(null, {
@@ -1263,9 +1296,12 @@ function DashboardWorkspace() {
         });
         throw new Error(
           translateFirestoreBookingErrorAr(err, {
-            accountMissing: isPasswordUser && !myAccountDoc && accountLinkError === 'missing',
+            accountMissing:
+              requiresLinkedPasswordAccount &&
+              !myAccountDoc &&
+              accountLinkError === 'missing',
             accountUnlinked:
-              isPasswordUser &&
+              requiresLinkedPasswordAccount &&
               (!myAccountDoc ||
                 myAccountDoc.authType !== 'credentials' ||
                 myAccountDoc.authUid !== user.uid),

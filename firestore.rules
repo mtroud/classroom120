@@ -48,7 +48,7 @@ service cloud.firestore {
     }
 
     function isBootstrappedAdmin() {
-      return isGoogleVerifiedEmail() && request.auth.token.email == 'control.mogma@gmail.com';
+      return isGoogleVerifiedEmail() && request.auth.token.email.lower() == 'control.mogma@gmail.com';
     }
 
     function accountDocId() {
@@ -63,18 +63,38 @@ service cloud.firestore {
       return get(/databases/$(database)/documents/accounts/$(accountDocId())).data;
     }
 
+    function isProvisionedPasswordAcctData(acc) {
+      return ('authType' in acc) &&
+        ('authUid' in acc) &&
+        acc.authType == 'credentials' &&
+        acc.authUid == request.auth.uid;
+    }
+
     function hasProvisionedPasswordAccount() {
+      let accPath = /databases/$(database)/documents/accounts/$(accountDocId());
       return isPasswordProvider() &&
         hasAccountEmailToken() &&
-        exists(/databases/$(database)/documents/accounts/$(accountDocId())) &&
-        ('authType' in myAccount()) &&
-        ('authUid' in myAccount()) &&
-        myAccount().authType == 'credentials' &&
-        myAccount().authUid == request.auth.uid;
+        exists(accPath) &&
+        isProvisionedPasswordAcctData(get(accPath).data);
     }
 
     function hasAccountDoc() {
       return hasVerifiedGoogleAccount() || hasProvisionedPasswordAccount();
+    }
+
+    function hasActiveAccountDoc() {
+      return hasAccountDoc() &&
+        ('status' in myAccount()) &&
+        myAccount().status == 'active' &&
+        ('role' in myAccount()) &&
+        myAccount().role in ['admin', 'branch_supervisor', 'coordinator', 'viewer'];
+    }
+
+    function isStrictAccountAccessEnabled() {
+      let sPath = /databases/$(database)/documents/settings/system;
+      return exists(sPath) &&
+        ('strictAccountAccess' in get(sPath).data) &&
+        get(sPath).data.strictAccountAccess == true;
     }
 
     function isVerified() {
@@ -82,23 +102,26 @@ service cloud.firestore {
     }
 
     function isSuspendedAccount() {
-      return hasAccountDoc() && myAccount().status == 'suspended';
+      return hasAccountDoc() && ('status' in myAccount()) && myAccount().status == 'suspended';
     }
 
     function isViewerOnly() {
-      return hasAccountDoc() && myAccount().status == 'active' && myAccount().role == 'viewer';
+      return hasAccountDoc() &&
+        ('status' in myAccount()) &&
+        myAccount().status == 'active' &&
+        ('role' in myAccount()) &&
+        myAccount().role == 'viewer';
     }
 
     function isAdmin() {
       return isBootstrappedAdmin() ||
         (isGoogleVerifiedEmail() && exists(/databases/$(database)/documents/admins/$(request.auth.uid))) ||
-        (hasAccountDoc() && myAccount().status == 'active' && myAccount().role == 'admin');
+        (hasActiveAccountDoc() && myAccount().role == 'admin');
     }
 
     function hasPermission(perm) {
       return isAdmin() || (
-        hasAccountDoc() &&
-        myAccount().status == 'active' &&
+        hasActiveAccountDoc() &&
         myAccount().role == 'branch_supervisor' &&
         ('permissions' in myAccount()) &&
         myAccount().permissions is map &&
@@ -107,18 +130,210 @@ service cloud.firestore {
       );
     }
 
+    function canWriteBookingsByAccountRole() {
+      return isAdmin() ||
+        (hasActiveAccountDoc() &&
+          myAccount().role in ['admin', 'branch_supervisor', 'coordinator']) ||
+        (!hasAccountDoc() &&
+          isGoogleVerifiedEmail() &&
+          !isStrictAccountAccessEnabled());
+    }
+
     function isOwner(userId) {
       return isSignedIn() && request.auth.uid == userId;
     }
 
     function isCoordinatorForOwnDepartment(dept) {
       return !hasAccountDoc() ||
+        !('role' in myAccount()) ||
         myAccount().role != 'coordinator' ||
         (('branchName' in myAccount()) &&
           (myAccount().branchName is string) &&
           myAccount().branchName.trim().size() >= 2 &&
           (dept == myAccount().branchName ||
             dept.trim() == myAccount().branchName.trim()));
+    }
+
+    function isValidClassroomRef(roomId) {
+      let roomPath = /databases/$(database)/documents/classrooms/$(roomId);
+      return exists(roomPath) && get(roomPath).data.id == roomId;
+    }
+
+    function lookupAcctPath() {
+      return /databases/$(database)/documents/accounts/$(accountDocId());
+    }
+
+    function hasValidAccountAuthAndActiveStatus(acc) {
+      let isActive = ('status' in acc) && acc.status == 'active';
+      let isPwdOk = !isPasswordProvider() || isProvisionedPasswordAcctData(acc);
+      return isActive && isPwdOk;
+    }
+
+    function acctMatchesDepartment(acc, dept) {
+      return !('role' in acc) ||
+        acc.role != 'coordinator' ||
+        (('branchName' in acc) &&
+          (acc.branchName is string) &&
+          acc.branchName.trim().size() >= 2 &&
+          (dept == acc.branchName || dept.trim() == acc.branchName.trim()));
+    }
+
+    function acctHasPerm(acc, perm) {
+      return ('role' in acc) && (
+        acc.role == 'admin' ||
+        (acc.role == 'branch_supervisor' &&
+          ('permissions' in acc) &&
+          acc.permissions is map &&
+          (perm in acc.permissions) &&
+          acc.permissions[perm] == true)
+      );
+    }
+
+    function canAcctCreateBooking(acc, data, isTrustedAdmin) {
+      let activeAndAuthOk = hasValidAccountAuthAndActiveStatus(acc);
+      let roleOk = isTrustedAdmin || (('role' in acc) && acc.role in ['admin', 'branch_supervisor', 'coordinator']);
+      let deptOk = isTrustedAdmin || acctMatchesDepartment(acc, data.department);
+      let statusOk = data.status == 'pending' || isTrustedAdmin || acctHasPerm(acc, 'approveBookings');
+      return activeAndAuthOk && roleOk && deptOk && statusOk;
+    }
+
+    function canCreateBookingWithLookup(accPath, data, isTrustedAdmin) {
+      let hasAcct = exists(accPath);
+      return (hasAcct && canAcctCreateBooking(get(accPath).data, data, isTrustedAdmin)) ||
+        (!hasAcct && isTrustedAdmin) ||
+        (!hasAcct && isGoogleVerifiedEmail() && !isStrictAccountAccessEnabled() && data.status == 'pending');
+    }
+
+    function canCreateBookingGate(data) {
+      let canLookupAcct = isGoogleVerifiedEmail() || (isPasswordProvider() && hasAccountEmailToken());
+      let isTrustedAdmin = isBootstrappedAdmin() ||
+        (isGoogleVerifiedEmail() && exists(/databases/$(database)/documents/admins/$(request.auth.uid)));
+      return isValidClassroomRef(data.roomId) && (
+        (canLookupAcct && canCreateBookingWithLookup(lookupAcctPath(), data, isTrustedAdmin)) ||
+        (!canLookupAcct && isTrustedAdmin)
+      );
+    }
+
+    function canAcctUpdateBooking(acc, data, prev, isTrustedAdmin) {
+      let activeAndAuthOk = hasValidAccountAuthAndActiveStatus(acc);
+      let roleOk = isTrustedAdmin || (('role' in acc) && acc.role in ['admin', 'branch_supervisor', 'coordinator']);
+      let canApprove = isTrustedAdmin || acctHasPerm(acc, 'approveBookings');
+      let canManage = isTrustedAdmin || acctHasPerm(acc, 'manageBookings');
+      let changedKeys = data.diff(prev).affectedKeys();
+      let actionApprove = canApprove &&
+        changedKeys.hasOnly([
+          'roomId', 'roomName', 'courseTitle', 'instructorName', 'department',
+          'bookingType', 'date', 'startTime', 'endTime', 'attendeesCount',
+          'status', 'notes', 'updatedAt'
+        ]) &&
+        isValidClassroomRef(data.roomId);
+      let actionManage = canManage &&
+        (data.status == prev.status || data.status == 'cancelled') &&
+        changedKeys.hasOnly([
+          'roomId', 'roomName', 'courseTitle', 'instructorName', 'department',
+          'bookingType', 'date', 'startTime', 'endTime', 'attendeesCount',
+          'status', 'notes', 'updatedAt'
+        ]) &&
+        isValidClassroomRef(data.roomId);
+      let actionOwnerEdit = prev.creatorId == request.auth.uid &&
+        prev.status == 'pending' &&
+        data.status == prev.status &&
+        acctMatchesDepartment(acc, data.department) &&
+        changedKeys.hasOnly([
+          'roomId', 'roomName', 'courseTitle', 'instructorName', 'department',
+          'bookingType', 'date', 'startTime', 'endTime', 'attendeesCount',
+          'notes', 'updatedAt'
+        ]) &&
+        isValidClassroomRef(data.roomId);
+      let actionOwnerCancel = prev.creatorId == request.auth.uid &&
+        prev.status in ['pending', 'confirmed'] &&
+        data.status == 'cancelled' &&
+        changedKeys.hasOnly(['status', 'updatedAt']);
+      return activeAndAuthOk && roleOk && (actionApprove || actionManage || actionOwnerEdit || actionOwnerCancel);
+    }
+
+    function canNoAcctUpdateBooking(data, prev, isTrustedAdmin) {
+      let changedKeys = data.diff(prev).affectedKeys();
+      let adminUpdate = isTrustedAdmin &&
+        changedKeys.hasOnly([
+          'roomId', 'roomName', 'courseTitle', 'instructorName', 'department',
+          'bookingType', 'date', 'startTime', 'endTime', 'attendeesCount',
+          'status', 'notes', 'updatedAt'
+        ]) &&
+        isValidClassroomRef(data.roomId);
+      let ownerEdit = !isStrictAccountAccessEnabled() &&
+        prev.creatorId == request.auth.uid &&
+        prev.status == 'pending' &&
+        data.status == prev.status &&
+        changedKeys.hasOnly([
+          'roomId', 'roomName', 'courseTitle', 'instructorName', 'department',
+          'bookingType', 'date', 'startTime', 'endTime', 'attendeesCount',
+          'notes', 'updatedAt'
+        ]) &&
+        isValidClassroomRef(data.roomId);
+      let ownerCancel = !isStrictAccountAccessEnabled() &&
+        prev.creatorId == request.auth.uid &&
+        prev.status in ['pending', 'confirmed'] &&
+        data.status == 'cancelled' &&
+        changedKeys.hasOnly(['status', 'updatedAt']);
+      return adminUpdate || ownerEdit || ownerCancel;
+    }
+
+    function canUpdateBookingWithLookup(accPath, data, prev, isTrustedAdmin) {
+      let hasAcct = exists(accPath);
+      return (hasAcct && canAcctUpdateBooking(get(accPath).data, data, prev, isTrustedAdmin)) ||
+        (!hasAcct && isGoogleVerifiedEmail() && canNoAcctUpdateBooking(data, prev, isTrustedAdmin));
+    }
+
+    function canUpdateBookingGate(data, prev) {
+      let canLookupAcct = isGoogleVerifiedEmail() || (isPasswordProvider() && hasAccountEmailToken());
+      let isTrustedAdmin = isBootstrappedAdmin() ||
+        (isGoogleVerifiedEmail() && exists(/databases/$(database)/documents/admins/$(request.auth.uid)));
+      return (canLookupAcct && canUpdateBookingWithLookup(lookupAcctPath(), data, prev, isTrustedAdmin)) ||
+        (!canLookupAcct && isTrustedAdmin && canNoAcctUpdateBooking(data, prev, isTrustedAdmin));
+    }
+
+    function canAcctDeleteBooking(acc, prev, isTrustedAdmin) {
+      let activeAndAuthOk = hasValidAccountAuthAndActiveStatus(acc);
+      let roleOk = isTrustedAdmin || (('role' in acc) && acc.role in ['admin', 'branch_supervisor', 'coordinator']);
+      let allowedByPermOrOwner = isTrustedAdmin ||
+        acctHasPerm(acc, 'approveBookings') ||
+        acctHasPerm(acc, 'manageBookings') ||
+        (prev.creatorId == request.auth.uid && prev.status == 'pending');
+      return activeAndAuthOk && roleOk && allowedByPermOrOwner;
+    }
+
+    function canDeleteBookingWithLookup(accPath, prev, isTrustedAdmin) {
+      let hasAcct = exists(accPath);
+      return (hasAcct && canAcctDeleteBooking(get(accPath).data, prev, isTrustedAdmin)) ||
+        (!hasAcct && isGoogleVerifiedEmail() && (
+          isTrustedAdmin ||
+          (!isStrictAccountAccessEnabled() && prev.creatorId == request.auth.uid && prev.status == 'pending')
+        ));
+    }
+
+    function canDeleteBookingGate(prev) {
+      let canLookupAcct = isGoogleVerifiedEmail() || (isPasswordProvider() && hasAccountEmailToken());
+      let isTrustedAdmin = isBootstrappedAdmin() ||
+        (isGoogleVerifiedEmail() && exists(/databases/$(database)/documents/admins/$(request.auth.uid)));
+      return (canLookupAcct && canDeleteBookingWithLookup(lookupAcctPath(), prev, isTrustedAdmin)) ||
+        (!canLookupAcct && isTrustedAdmin);
+    }
+
+    function canAcctWriteAuditLog(acc) {
+      return hasValidAccountAuthAndActiveStatus(acc) &&
+        (!('role' in acc) || acc.role != 'viewer');
+    }
+
+    function canWriteAuditLogWithLookup(accPath) {
+      let hasAcct = exists(accPath);
+      return (hasAcct && canAcctWriteAuditLog(get(accPath).data)) ||
+        (!hasAcct && isGoogleVerifiedEmail());
+    }
+
+    function canWriteAuditLogGate() {
+      let canLookupAcct = isGoogleVerifiedEmail() || (isPasswordProvider() && hasAccountEmailToken());
+      return canLookupAcct && canWriteAuditLogWithLookup(lookupAcctPath());
     }
 
     // --- Entity Validation Blueprints (No existing() or diff() inside) ---
@@ -161,10 +376,10 @@ service cloud.firestore {
       ]) &&
       isValidId(data.id) &&
       isValidId(data.roomId) &&
-      data.roomName is string && data.roomName.size() >= 2 && data.roomName.size() <= 100 &&
-      data.courseTitle is string && data.courseTitle.size() >= 2 && data.courseTitle.size() <= 120 &&
-      data.instructorName is string && data.instructorName.size() >= 2 && data.instructorName.size() <= 80 &&
-      data.department is string && data.department.size() >= 2 && data.department.size() <= 80 &&
+      data.roomName is string && data.roomName.trim().size() >= 2 && data.roomName.size() <= 100 &&
+      data.courseTitle is string && data.courseTitle.trim().size() >= 2 && data.courseTitle.size() <= 120 &&
+      data.instructorName is string && data.instructorName.trim().size() >= 2 && data.instructorName.size() <= 80 &&
+      data.department is string && data.department.trim().size() >= 2 && data.department.size() <= 80 &&
       data.bookingType in ['lecture', 'workshop', 'exam', 'seminar'] &&
       data.date is string && data.date.size() == 10 && data.date.matches('^\\d{4}-\\d{2}-\\d{2}$') &&
       data.startTime is string && data.startTime.size() == 5 && data.startTime.matches('^([01]\\d|2[0-3]):[0-5]\\d$') &&
@@ -174,7 +389,7 @@ service cloud.firestore {
       data.status in ['pending', 'confirmed', 'rejected', 'cancelled'] &&
       data.notes is string && data.notes.size() <= 300 &&
       data.creatorId is string && data.creatorId.size() >= 1 && data.creatorId.size() <= 128 &&
-      data.creatorName is string && data.creatorName.size() >= 1 && data.creatorName.size() <= 80 &&
+      data.creatorName is string && data.creatorName.trim().size() >= 1 && data.creatorName.size() <= 80 &&
       data.createdAt is timestamp &&
       data.updatedAt is timestamp;
     }
@@ -325,28 +540,30 @@ service cloud.firestore {
       allow get: if isSignedIn() && isValidId(roomId);
       allow list: if isSignedIn() && (isBootstrappedAdmin() || resource.data.status in ['available', 'maintenance']);
 
-      allow create: if isVerified() &&
+      allow create: if isSignedIn() &&
         isValidId(roomId) &&
         isValidClassroom(incoming()) &&
         incoming().id == roomId &&
         incoming().createdBy == request.auth.uid &&
         incoming().createdAt == request.time &&
         incoming().updatedAt == request.time &&
+        isVerified() &&
         hasPermission('manageClassrooms');
 
-      allow update: if isVerified() &&
+      allow update: if isSignedIn() &&
         isValidId(roomId) &&
         isValidClassroom(incoming()) &&
         incoming().id == existing().id &&
         incoming().createdBy == existing().createdBy &&
         incoming().createdAt == existing().createdAt &&
         incoming().updatedAt == request.time &&
+        isVerified() &&
         hasPermission('manageClassrooms') &&
         incoming().diff(existing()).affectedKeys().hasOnly([
           'name', 'code', 'floor', 'capacity', 'equipment', 'status', 'imageUrl', 'notes', 'updatedAt'
         ]);
 
-      allow delete: if isVerified() && isValidId(roomId) && hasPermission('manageClassrooms');
+      allow delete: if isSignedIn() && isValidId(roomId) && isVerified() && hasPermission('manageClassrooms');
     }
 
     // --- Collection: Bookings ---
@@ -365,65 +582,20 @@ service cloud.firestore {
         incoming().creatorId == request.auth.uid &&
         incoming().createdAt == request.time &&
         incoming().updatedAt == request.time &&
-        isVerified() &&
-        !isSuspendedAccount() &&
-        !isViewerOnly() &&
-        isCoordinatorForOwnDepartment(incoming().department) &&
-        exists(/databases/$(database)/documents/classrooms/$(incoming().roomId)) &&
-        get(/databases/$(database)/documents/classrooms/$(incoming().roomId)).data.id == incoming().roomId &&
-        (hasPermission('approveBookings') || incoming().status == 'pending');
+        canCreateBookingGate(incoming());
 
-      allow update: if isVerified() &&
+      allow update: if isSignedIn() &&
         isValidId(bookingId) &&
         isValidBooking(incoming()) &&
         incoming().id == existing().id &&
         incoming().creatorId == existing().creatorId &&
         incoming().createdAt == existing().createdAt &&
         incoming().updatedAt == request.time &&
-        !isSuspendedAccount() &&
-        !isViewerOnly() && (
-          // Action 1: Approver manages booking or updates approval status
-          (hasPermission('approveBookings') &&
-            exists(/databases/$(database)/documents/classrooms/$(incoming().roomId)) &&
-            incoming().diff(existing()).affectedKeys().hasOnly([
-              'roomId', 'roomName', 'courseTitle', 'instructorName', 'department',
-              'bookingType', 'date', 'startTime', 'endTime', 'attendeesCount',
-              'status', 'notes', 'updatedAt'
-            ])) ||
-          // Action 2: Branch supervisor with manageBookings updates booking details or cancels
-          (hasPermission('manageBookings') &&
-            (incoming().status == existing().status || incoming().status == 'cancelled') &&
-            exists(/databases/$(database)/documents/classrooms/$(incoming().roomId)) &&
-            incoming().diff(existing()).affectedKeys().hasOnly([
-              'roomId', 'roomName', 'courseTitle', 'instructorName', 'department',
-              'bookingType', 'date', 'startTime', 'endTime', 'attendeesCount',
-              'status', 'notes', 'updatedAt'
-            ])) ||
-          // Action 3: Creator updates own pending booking details
-          (existing().creatorId == request.auth.uid &&
-            existing().status == 'pending' &&
-            incoming().status == existing().status &&
-            isCoordinatorForOwnDepartment(incoming().department) &&
-            exists(/databases/$(database)/documents/classrooms/$(incoming().roomId)) &&
-            incoming().diff(existing()).affectedKeys().hasOnly([
-              'roomId', 'roomName', 'courseTitle', 'instructorName', 'department',
-              'bookingType', 'date', 'startTime', 'endTime', 'attendeesCount',
-              'notes', 'updatedAt'
-            ])) ||
-          // Action 4: Creator cancels own non-terminal booking
-          (existing().creatorId == request.auth.uid &&
-            existing().status in ['pending', 'confirmed'] &&
-            incoming().status == 'cancelled' &&
-            incoming().diff(existing()).affectedKeys().hasOnly(['status', 'updatedAt']))
-        );
+        canUpdateBookingGate(incoming(), existing());
 
-      allow delete: if isVerified() &&
+      allow delete: if isSignedIn() &&
         isValidId(bookingId) &&
-        !isSuspendedAccount() &&
-        !isViewerOnly() &&
-        (hasPermission('approveBookings') ||
-          hasPermission('manageBookings') ||
-          (existing().creatorId == request.auth.uid && existing().status == 'pending'));
+        canDeleteBookingGate(existing());
     }
 
     // --- Collection: Isolated User Private Info ---
@@ -431,7 +603,7 @@ service cloud.firestore {
       allow get: if isSignedIn() && isValidId(userId) && isValidId(docId) && docId == 'info' && (isOwner(userId) || isAdmin());
       allow list: if false;
 
-      allow create: if isVerified() &&
+      allow create: if isSignedIn() &&
         isValidId(userId) &&
         isValidId(docId) &&
         docId == 'info' &&
@@ -439,16 +611,18 @@ service cloud.firestore {
         isValidUserPrivate(incoming(), userId) &&
         incoming().createdAt == request.time &&
         incoming().updatedAt == request.time &&
+        isVerified() &&
         (isAdmin() || incoming().role == 'coordinator');
 
-      allow update: if isVerified() &&
+      allow update: if isSignedIn() &&
         isValidId(userId) &&
         isValidId(docId) &&
         docId == 'info' &&
         isValidUserPrivate(incoming(), userId) &&
         incoming().uid == existing().uid &&
         incoming().createdAt == existing().createdAt &&
-        incoming().updatedAt == request.time && (
+        incoming().updatedAt == request.time &&
+        isVerified() && (
           // Action 1: Owner updates profile details without changing role
           (isOwner(userId) &&
             incoming().role == existing().role &&
@@ -462,7 +636,7 @@ service cloud.firestore {
             ]))
         );
 
-      allow delete: if isVerified() && isValidId(userId) && isValidId(docId) && docId == 'info' && isAdmin();
+      allow delete: if isSignedIn() && isValidId(userId) && isValidId(docId) && docId == 'info' && isVerified() && isAdmin();
     }
 
     // --- Collection: Trusted Admins ---
@@ -470,15 +644,16 @@ service cloud.firestore {
       allow get: if isSignedIn() && isValidId(adminId) && (isOwner(adminId) || isAdmin());
       allow list: if isBootstrappedAdmin();
 
-      allow create: if isVerified() &&
+      allow create: if isSignedIn() &&
         isValidId(adminId) &&
-        isAdmin() &&
         isValidAdminRecord(incoming(), adminId) &&
         incoming().grantedBy == request.auth.uid &&
-        incoming().createdAt == request.time;
+        incoming().createdAt == request.time &&
+        isVerified() &&
+        isAdmin();
 
       allow update: if false;
-      allow delete: if isVerified() && isValidId(adminId) && isAdmin();
+      allow delete: if isSignedIn() && isValidId(adminId) && isVerified() && isAdmin();
     }
 
     // --- Collection: Departments ---
@@ -486,41 +661,46 @@ service cloud.firestore {
       allow get: if isSignedIn() && isValidId(departmentId);
       allow list: if isSignedIn() && (isBootstrappedAdmin() || resource.data.status in ['active', 'inactive']);
 
-      allow create: if isVerified() &&
+      allow create: if isSignedIn() &&
         isValidId(departmentId) &&
         isValidDepartment(incoming()) &&
         incoming().id == departmentId &&
         incoming().createdBy == request.auth.uid &&
         incoming().createdAt == request.time &&
         incoming().updatedAt == request.time &&
+        isVerified() &&
         hasPermission('manageDepartments');
 
-      allow update: if isVerified() &&
+      allow update: if isSignedIn() &&
         isValidId(departmentId) &&
         isValidDepartment(incoming()) &&
         incoming().id == existing().id &&
         incoming().createdBy == existing().createdBy &&
         incoming().createdAt == existing().createdAt &&
         incoming().updatedAt == request.time &&
+        isVerified() &&
         hasPermission('manageDepartments') &&
         incoming().diff(existing()).affectedKeys().hasOnly([
           'name', 'code', 'headName', 'sector', 'status', 'notes', 'updatedAt'
         ]);
 
-      allow delete: if isVerified() && isValidId(departmentId) && hasPermission('manageDepartments');
+      allow delete: if isSignedIn() && isValidId(departmentId) && isVerified() && hasPermission('manageDepartments');
     }
 
     // --- Collection: Branch & Staff Accounts ---
     match /accounts/{accountId} {
       allow get: if isSignedIn() && isValidId(accountId) && (
         isBootstrappedAdmin() ||
-        isAdmin() ||
         (isGoogleVerifiedEmail() && accountId == accountDocId()) ||
         (isPasswordProvider() &&
           hasAccountEmailToken() &&
           accountId == accountDocId() &&
+          resource != null &&
+          ('authType' in existing()) &&
+          ('authUid' in existing()) &&
           existing().authType == 'credentials' &&
-          existing().authUid == request.auth.uid)
+          existing().authUid == request.auth.uid) ||
+        isAdmin()
       );
       allow list: if isSignedIn() && (
         isBootstrappedAdmin() ||
@@ -531,29 +711,31 @@ service cloud.firestore {
           resource.data.authUid == request.auth.uid)
       );
 
-      allow create: if isVerified() &&
+      allow create: if isSignedIn() &&
         isValidId(accountId) &&
         isValidAccount(incoming()) &&
         incoming().id == accountId &&
         incoming().createdBy == request.auth.uid &&
         incoming().createdAt == request.time &&
         incoming().updatedAt == request.time &&
+        isVerified() &&
         isAdmin();
 
-      allow update: if isVerified() &&
+      allow update: if isSignedIn() &&
         isValidId(accountId) &&
         isValidAccount(incoming()) &&
         incoming().id == existing().id &&
         incoming().createdBy == existing().createdBy &&
         incoming().createdAt == existing().createdAt &&
         incoming().updatedAt == request.time &&
+        isVerified() &&
         isAdmin() &&
         incoming().diff(existing()).affectedKeys().hasOnly([
           'email', 'username', 'authType', 'authUid', 'displayName', 'branchName',
           'role', 'status', 'permissions', 'notes', 'updatedAt'
         ]);
 
-      allow delete: if isVerified() && isValidId(accountId) && isAdmin();
+      allow delete: if isSignedIn() && isValidId(accountId) && isVerified() && isAdmin();
     }
 
     // --- Collection: System Settings ---
@@ -561,22 +743,24 @@ service cloud.firestore {
       allow get: if isSignedIn() && isValidId(settingId) && settingId == 'system';
       allow list: if false;
 
-      allow create: if isVerified() &&
+      allow create: if isSignedIn() &&
         isValidId(settingId) &&
         settingId == 'system' &&
         isValidSystemSettings(incoming()) &&
         incoming().id == settingId &&
         incoming().updatedBy == request.auth.uid &&
         incoming().updatedAt == request.time &&
+        isVerified() &&
         hasPermission('manageSettings');
 
-      allow update: if isVerified() &&
+      allow update: if isSignedIn() &&
         isValidId(settingId) &&
         settingId == 'system' &&
         isValidSystemSettings(incoming()) &&
         incoming().id == existing().id &&
         incoming().updatedBy == request.auth.uid &&
         incoming().updatedAt == request.time &&
+        isVerified() &&
         hasPermission('manageSettings') &&
         incoming().diff(existing()).affectedKeys().hasOnly([
           'organizationName', 'complexSubtitle', 'workStartHour', 'workEndHour',
@@ -590,7 +774,7 @@ service cloud.firestore {
 
     // --- Collection: Immutable Audit Logs ---
     match /auditLogs/{logId} {
-      allow get: if isVerified() && isValidId(logId) && !isSuspendedAccount() && (
+      allow get: if isSignedIn() && isValidId(logId) && isVerified() && !isSuspendedAccount() && (
         isAdmin() ||
         existing().actorUid == request.auth.uid ||
         existing().entityType in ['booking', 'classroom', 'department']
@@ -601,14 +785,13 @@ service cloud.firestore {
         resource.data.entityType in ['booking', 'classroom', 'department']
       );
 
-      allow create: if isVerified() &&
+      allow create: if isSignedIn() &&
         isValidId(logId) &&
         isValidAuditLog(incoming()) &&
         incoming().id == logId &&
         incoming().actorUid == request.auth.uid &&
         incoming().createdAt == request.time &&
-        !isSuspendedAccount() &&
-        !isViewerOnly();
+        canWriteAuditLogGate();
 
       allow update: if false;
       allow delete: if false;
