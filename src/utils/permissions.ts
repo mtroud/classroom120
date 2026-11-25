@@ -294,7 +294,13 @@ export function resolveEffectiveAccess(params: {
     }
 
     if (account.role === 'branch_supervisor') {
-      const p = account.permissions;
+      const p = account.permissions || defaultPermissionsForRole(account.role);
+      const approveBookings = p.approveBookings === true;
+      const manageBookings = p.manageBookings === true;
+      const manageClassrooms = p.manageClassrooms === true;
+      const manageDepartments = p.manageDepartments === true;
+      const viewReports = p.viewReports === true;
+      const manageSettings = p.manageSettings === true;
       return {
         role: 'branch_supervisor',
         isSuspended: false,
@@ -302,23 +308,23 @@ export function resolveEffectiveAccess(params: {
         isBootstrappedAdmin: false,
         isFullAdmin: false,
         canCreateBookings: true,
-        canApproveBookings: Boolean(p.approveBookings),
-        canManageBookings: Boolean(p.manageBookings || p.approveBookings),
-        canManageClassrooms: Boolean(p.manageClassrooms),
-        canManageDepartments: Boolean(p.manageDepartments),
+        canApproveBookings: approveBookings,
+        canManageBookings: manageBookings || approveBookings,
+        canManageClassrooms: manageClassrooms,
+        canManageDepartments: manageDepartments,
         canViewBookingsTab: true,
         canViewClassroomsTab: true,
         canViewDepartmentsTab: true,
-        canViewReports: Boolean(p.viewReports),
+        canViewReports: viewReports,
         canViewAuditLog: Boolean(
-          p.approveBookings ||
-            p.manageBookings ||
-            p.manageClassrooms ||
-            p.manageDepartments ||
-            p.viewReports ||
-            p.manageSettings
+          approveBookings ||
+            manageBookings ||
+            manageClassrooms ||
+            manageDepartments ||
+            viewReports ||
+            manageSettings
         ),
-        canManageSettings: Boolean(p.manageSettings),
+        canManageSettings: manageSettings,
         canManageAccounts: false,
         branchName: account.branchName,
       };

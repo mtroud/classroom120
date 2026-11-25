@@ -141,6 +141,7 @@ export function AccountModal({
         ...form,
         email: normalizedEmail.slice(0, BLUEPRINT_LIMITS.EMAIL_MAX),
         username: normalizedUsername.slice(0, BLUEPRINT_LIMITS.USERNAME_MAX),
+        authUid: (form.authUid || '').trim().slice(0, 128),
         displayName: form.displayName.trim().slice(0, BLUEPRINT_LIMITS.DISPLAY_NAME_MAX),
         branchName: form.branchName.trim().slice(0, BLUEPRINT_LIMITS.BRANCH_NAME_MAX),
         notes: form.notes.trim().slice(0, BLUEPRINT_LIMITS.NOTES_MAX),
@@ -221,16 +222,47 @@ export function AccountModal({
               </button>
             </div>
           ) : (
-            <div className="bg-[#F8FAFD] border border-[#E8EAED] rounded-xl px-4 py-3 flex flex-wrap items-center justify-between gap-2 text-xs">
-              <div>
-                <span className="text-[#747775]">معرّف الدخول: </span>
-                <span className="font-mono-num font-semibold text-[#1F1F1F]" dir="ltr">
-                  {formatAccountLoginIdentifier(form)}
-                </span>
+            <div className="bg-[#F8FAFD] border border-[#E8EAED] rounded-xl px-4 py-3 space-y-2.5 text-xs">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <div>
+                  <span className="text-[#747775]">معرّف الدخول: </span>
+                  <span className="font-mono-num font-semibold text-[#1F1F1F]" dir="ltr">
+                    {formatAccountLoginIdentifier(form)}
+                  </span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-[#444746] font-medium">
+                    {form.authType === 'credentials' ? 'دخول عادي (يوزر وكلمة مرور)' : 'حساب Google'}
+                  </span>
+                  {form.authType === 'credentials' && (
+                    <span
+                      className={`px-2 py-0.5 rounded-md font-semibold ${
+                        form.authUid?.trim()
+                          ? 'bg-[#E6F4EA] text-[#137333]'
+                          : 'bg-[#FCE8E6] text-[#C5221F]'
+                      }`}
+                    >
+                      {form.authUid?.trim() ? 'مربوط بـ Auth UID' : 'غير مربوط بـ Auth UID'}
+                    </span>
+                  )}
+                </div>
               </div>
-              <span className="text-[#444746] font-medium">
-                {form.authType === 'credentials' ? 'دخول عادي (يوزر وكلمة مرور)' : 'حساب Google'}
-              </span>
+              {form.authType === 'credentials' && (
+                <div>
+                  <label className="block text-[11px] font-medium text-[#444746] mb-1">
+                    معرّف Firebase Auth UID (للربط مع حساب الدخول بكلمة المرور)
+                  </label>
+                  <input
+                    type="text"
+                    dir="ltr"
+                    maxLength={128}
+                    value={form.authUid || ''}
+                    onChange={(e) => setForm({ ...form, authUid: e.target.value })}
+                    placeholder="أدخل Firebase Auth UID الخاص بالحساب"
+                    className="w-full rounded-lg border border-[#DADCE0] bg-white px-3 py-1.5 text-xs font-mono-num text-[#1F1F1F] placeholder:text-[#747775] focus:outline-none focus:border-[#0B57D0] focus:ring-2 focus:ring-[#0B57D0]/15 text-left"
+                  />
+                </div>
+              )}
             </div>
           )}
 

@@ -114,11 +114,11 @@ service cloud.firestore {
     function isCoordinatorForOwnDepartment(dept) {
       return !hasAccountDoc() ||
         myAccount().role != 'coordinator' ||
-        !('branchName' in myAccount()) ||
-        !(myAccount().branchName is string) ||
-        myAccount().branchName.trim().size() < 2 ||
-        dept == myAccount().branchName ||
-        dept.trim() == myAccount().branchName.trim();
+        (('branchName' in myAccount()) &&
+          (myAccount().branchName is string) &&
+          myAccount().branchName.trim().size() >= 2 &&
+          (dept == myAccount().branchName ||
+            dept.trim() == myAccount().branchName.trim()));
     }
 
     // --- Entity Validation Blueprints (No existing() or diff() inside) ---
@@ -358,17 +358,19 @@ service cloud.firestore {
         resource.data.status in ['confirmed', 'pending']
       );
 
-      allow create: if isVerified() &&
+      allow create: if isSignedIn() &&
         isValidId(bookingId) &&
         isValidBooking(incoming()) &&
         incoming().id == bookingId &&
         incoming().creatorId == request.auth.uid &&
         incoming().createdAt == request.time &&
         incoming().updatedAt == request.time &&
+        isVerified() &&
         !isSuspendedAccount() &&
         !isViewerOnly() &&
         isCoordinatorForOwnDepartment(incoming().department) &&
         exists(/databases/$(database)/documents/classrooms/$(incoming().roomId)) &&
+        get(/databases/$(database)/documents/classrooms/$(incoming().roomId)).data.id == incoming().roomId &&
         (hasPermission('approveBookings') || incoming().status == 'pending');
 
       allow update: if isVerified() &&

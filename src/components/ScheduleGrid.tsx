@@ -6,11 +6,14 @@ import {
   ChevronLeft,
   ChevronRight,
   Clock,
+  FileDown,
   Plus,
   Printer,
   Wrench,
+  X,
 } from 'lucide-react';
 import { Booking, Classroom } from '../types';
+import { BulletinBoardMode, BulletinBoardSheet } from './BulletinBoardSheet';
 import {
   ARABIC_WEEKDAYS_SAT_START,
   BOOKING_STATUS_LABEL,
@@ -41,6 +44,8 @@ interface ScheduleGridProps {
   workStartHour?: string;
   workEndHour?: string;
   reportHeaderTitle?: string;
+  organizationName?: string;
+  reportFooterNote?: string;
 }
 
 export function ScheduleGrid({
@@ -55,10 +60,16 @@ export function ScheduleGrid({
   workStartHour = '08:00',
   workEndHour = '21:00',
   reportHeaderTitle,
+  organizationName,
+  reportFooterNote,
 }: ScheduleGridProps) {
-  const [mode, setMode] = useState<'daily' | 'weekly' | 'monthly'>('daily');
+  const [mode, setMode] = useState<'daily' | 'weekly' | 'monthly'>('weekly');
+  const [weeklyLayout, setWeeklyLayout] = useState<'rooms' | 'hours'>('rooms');
   const [roomFilter, setRoomFilter] = useState<string>('all');
   const [nowTick, setNowTick] = useState<Date>(() => new Date());
+  const [printPreviewOpen, setPrintPreviewOpen] = useState(false);
+  const [printMode, setPrintMode] = useState<BulletinBoardMode>('weekly');
+  const [printConfirmedOnly, setPrintConfirmedOnly] = useState(true);
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -245,6 +256,24 @@ export function ScheduleGrid({
     });
   };
 
+  const findBookingsForDayHour = (dateISO: string, hourStr: string): Booking[] => {
+    const slotStart = timeToMinutes(hourStr);
+    const slotEnd = slotStart + 60;
+    return weeklyFilteredBookings.filter((b) => {
+      if (b.date !== dateISO) return false;
+      const bStart = timeToMinutes(b.startTime);
+      const bEnd = timeToMinutes(b.endTime);
+      return bStart < slotEnd && bEnd > slotStart;
+    });
+  };
+
+  const findFreeRoomForDayHour = (dateISO: string, hourStr: string): Classroom | undefined => {
+    const busyRoomIds = new Set(findBookingsForDayHour(dateISO, hourStr).map((b) => b.roomId));
+    return weeklyVisibleClassrooms.find(
+      (r) => r.status !== 'maintenance' && !busyRoomIds.has(r.id)
+    );
+  };
+
   const nextHourString = (hourStr: string): string => {
     const [h] = hourStr.split(':').map(Number);
     return `${String(Math.min(21, h + 1)).padStart(2, '0')}:00`;
@@ -264,19 +293,8 @@ export function ScheduleGrid({
       {/* Google Calendar-Inspired Toolbar */}
       <div className="bg-white border border-[#DADCE0] rounded-2xl p-4 flex flex-col lg:flex-row lg:items-center justify-between gap-4 no-print">
         <div className="flex flex-wrap items-center gap-3">
-          {/* Segmented View Switch */}
+          {/* Segmented View Switch (Weekly Primary) */}
           <div className="inline-flex items-center p-1 bg-[#F0F4F9] rounded-xl">
-            <button
-              type="button"
-              onClick={() => setMode('daily')}
-              className={`px-3.5 py-1.5 text-xs rounded-lg transition-colors whitespace-nowrap shrink-0 cursor-pointer ${
-                mode === 'daily'
-                  ? 'bg-white text-[#0B57D0] font-semibold g-elevation-1'
-                  : 'text-[#444746] font-medium hover:text-[#1F1F1F]'
-              }`}
-            >
-              الجدول اليومي
-            </button>
             <button
               type="button"
               onClick={() => setMode('weekly')}
@@ -287,6 +305,17 @@ export function ScheduleGrid({
               }`}
             >
               الجدول الأسبوعي
+            </button>
+            <button
+              type="button"
+              onClick={() => setMode('daily')}
+              className={`px-3.5 py-1.5 text-xs rounded-lg transition-colors whitespace-nowrap shrink-0 cursor-pointer ${
+                mode === 'daily'
+                  ? 'bg-white text-[#0B57D0] font-semibold g-elevation-1'
+                  : 'text-[#444746] font-medium hover:text-[#1F1F1F]'
+              }`}
+            >
+              الجدول اليومي
             </button>
             <button
               type="button"
@@ -307,7 +336,13 @@ export function ScheduleGrid({
               type="button"
               onClick={() => handleStepPeriod(-1)}
               className="p-1.5 rounded-lg text-[#444746] hover:bg-[#F0F4F9] hover:text-[#1F1F1F] transition-colors cursor-pointer"
-              aria-label={mode === 'monthly' ? 'الشهر السابق' : 'الفترة السابقة'}
+              aria-label={
+                mode === 'monthly'
+                  ? 'الشهر السابق'
+                  : mode === 'weekly'
+                  ? 'الأسبوع السابق'
+                  : 'اليوم السابق'
+              }
             >
               <ChevronRight className="w-4 h-4" />
             </button>
@@ -316,13 +351,23 @@ export function ScheduleGrid({
               onClick={() => onDateChange(todayISO)}
               className="px-3 py-1 text-xs font-semibold text-[#0B57D0] hover:bg-[#E8F0FE] rounded-lg transition-colors whitespace-nowrap shrink-0 cursor-pointer"
             >
-              اليوم
+              {mode === 'weekly'
+                ? 'هذا الأسبوع'
+                : mode === 'monthly'
+                ? 'هذا الشهر'
+                : 'اليوم'}
             </button>
             <button
               type="button"
               onClick={() => handleStepPeriod(1)}
               className="p-1.5 rounded-lg text-[#444746] hover:bg-[#F0F4F9] hover:text-[#1F1F1F] transition-colors cursor-pointer"
-              aria-label={mode === 'monthly' ? 'الشهر التالي' : 'الفترة التالية'}
+              aria-label={
+                mode === 'monthly'
+                  ? 'الشهر التالي'
+                  : mode === 'weekly'
+                  ? 'الأسبوع التالي'
+                  : 'اليوم التالي'
+              }
             >
               <ChevronLeft className="w-4 h-4" />
             </button>
@@ -368,27 +413,34 @@ export function ScheduleGrid({
 
           <button
             type="button"
-            onClick={() => window.print()}
-            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl border border-[#DADCE0] bg-white text-xs font-medium text-[#1F1F1F] hover:bg-[#F0F4F9] transition-colors whitespace-nowrap shrink-0 cursor-pointer"
+            onClick={() => {
+              setPrintMode(mode);
+              setPrintPreviewOpen(true);
+            }}
+            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl border border-[#AECBFA] bg-[#E8F0FE] text-xs font-semibold text-[#0B57D0] hover:bg-[#D3E3FD]/70 transition-colors whitespace-nowrap shrink-0 cursor-pointer"
           >
-            <Printer className="w-4 h-4 text-[#444746]" />
-            <span>طباعة الجدول</span>
+            <FileDown className="w-4 h-4 shrink-0" />
+            <span>طباعة لوحة الإعلانات (PDF)</span>
           </button>
         </div>
       </div>
 
-      {/* Print header */}
-      <div className="hidden print:block mb-4 border-b border-[#DADCE0] pb-3">
-        <h1 className="font-display text-xl font-bold text-[#1F1F1F]">
-          {reportHeaderTitle || 'جدول القاعات الدراسية — قسم مجمع سيد الشهداء (ع) الخدمي'}
-        </h1>
-        <p className="text-sm text-[#444746] mt-1">
-          {mode === 'daily'
-            ? formatArabicDate(selectedDate)
-            : mode === 'weekly'
-            ? `الأسبوع: ${formatShortArabicDate(weekDates[0])} إلى ${formatShortArabicDate(weekDates[6])}`
-            : `التقويم الشهري: ${formatArabicMonthYear(selectedDate)}`}
-        </p>
+      {/* Print-Only Formatted Bulletin Board Sheet (A4 Landscape PDF) */}
+      <div className="hidden print:block">
+        <BulletinBoardSheet
+          mode={printPreviewOpen ? printMode : mode}
+          selectedDate={selectedDate}
+          classrooms={classrooms}
+          bookings={bookings}
+          roomFilter={roomFilter}
+          confirmedOnly={printConfirmedOnly}
+          workStartHour={workStartHour}
+          workEndHour={workEndHour}
+          reportHeaderTitle={reportHeaderTitle}
+          organizationName={organizationName}
+          reportFooterNote={reportFooterNote}
+          printedAtLabel={todayISO}
+        />
       </div>
 
       {/* Field Follow-Up Imminent Alerts Banner (Next 60 Minutes) */}
@@ -441,6 +493,7 @@ export function ScheduleGrid({
         </div>
       )}
 
+      <div className="no-print">
       {classrooms.length === 0 ? (
         <div className="bg-white border border-[#DADCE0] rounded-2xl p-12 text-center">
           <p className="text-sm font-medium text-[#1F1F1F]">
@@ -665,10 +718,10 @@ export function ScheduleGrid({
           </div>
         </div>
       ) : mode === 'weekly' ? (
-        /* Detailed Classroom x 7-Day Week View */
+        /* Detailed Full-Week View (Rooms x 7 Days OR Hours x 7 Days) */
         <div className="bg-white border border-[#DADCE0] rounded-2xl overflow-hidden">
-          {/* Week Summary Header */}
-          <div className="px-4 py-3.5 border-b border-[#DADCE0] flex flex-wrap items-center justify-between gap-3 bg-[#F8FAFD]">
+          {/* Week Summary & Sub-Layout Header */}
+          <div className="px-4 py-3 border-b border-[#DADCE0] flex flex-wrap items-center justify-between gap-3 bg-[#F8FAFD]">
             <div className="flex flex-wrap items-center gap-2 text-xs text-[#444746]">
               <span className="font-display text-sm font-bold text-[#1F1F1F]">
                 أسبوع: {formatShortArabicDate(weekDates[0])} — {formatShortArabicDate(weekDates[6])}
@@ -696,207 +749,411 @@ export function ScheduleGrid({
                 </>
               )}
             </div>
-            <div className="text-[11px] text-[#747775] no-print">
-              توزيع تفصيلي للحجوزات لكل قاعة · انقر على اسم اليوم لعرض جدوله الكامل
+
+            <div className="flex flex-wrap items-center gap-3 no-print">
+              {/* Weekly Sub-Layout Switch: Classroom Matrix vs Hourly Timetable */}
+              <div className="inline-flex items-center p-1 bg-[#E9EEF6] rounded-xl">
+                <button
+                  type="button"
+                  onClick={() => setWeeklyLayout('rooms')}
+                  className={`px-3 py-1 text-[11px] rounded-lg transition-colors whitespace-nowrap shrink-0 cursor-pointer ${
+                    weeklyLayout === 'rooms'
+                      ? 'bg-white text-[#0B57D0] font-semibold g-elevation-1'
+                      : 'text-[#444746] font-medium hover:text-[#1F1F1F]'
+                  }`}
+                >
+                  حسب القاعات
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setWeeklyLayout('hours')}
+                  className={`px-3 py-1 text-[11px] rounded-lg transition-colors whitespace-nowrap shrink-0 cursor-pointer ${
+                    weeklyLayout === 'hours'
+                      ? 'bg-white text-[#0B57D0] font-semibold g-elevation-1'
+                      : 'text-[#444746] font-medium hover:text-[#1F1F1F]'
+                  }`}
+                >
+                  حسب الساعات
+                </button>
+              </div>
+              <span className="hidden xl:inline text-[11px] text-[#747775]">
+                انقر على اسم اليوم لعرض جدوله المفصل
+              </span>
             </div>
           </div>
 
-          <div className="overflow-x-auto">
-            <table className="w-full border-collapse min-w-[1160px]">
-              <thead>
-                <tr className="bg-[#F8FAFD] border-b border-[#DADCE0]">
-                  <th className="w-52 px-4 py-3 text-right text-xs font-semibold text-[#444746] border-l border-[#DADCE0] bg-[#F8FAFD]">
-                    القاعة الدراسية
-                  </th>
-                  {weekDates.map((dateISO) => {
-                    const isToday = dateISO === todayISO;
-                    return (
-                      <th
-                        key={dateISO}
-                        className={`px-3 py-2.5 text-right border-l last:border-l-0 border-[#DADCE0] min-w-[148px] ${
-                          isToday ? 'bg-[#E8F0FE]/70' : ''
-                        }`}
-                      >
-                        <button
-                          type="button"
-                          onClick={() => handleOpenDaySchedule(dateISO)}
-                          className="w-full text-right group/day cursor-pointer"
-                          title="الانتقال إلى الجدول اليومي لهذا اليوم"
+          {weeklyLayout === 'rooms' ? (
+            <div className="overflow-x-auto">
+              <table className="w-full border-collapse min-w-[920px] table-fixed">
+                <thead>
+                  <tr className="bg-[#F8FAFD] border-b border-[#DADCE0]">
+                    <th className="w-44 px-3 py-3 text-right text-xs font-semibold text-[#444746] border-l border-[#DADCE0] bg-[#F8FAFD]">
+                      القاعة الدراسية
+                    </th>
+                    {weekDates.map((dateISO) => {
+                      const isToday = dateISO === todayISO;
+                      const isSelected = dateISO === selectedDate;
+                      return (
+                        <th
+                          key={dateISO}
+                          className={`px-2.5 py-2.5 text-right border-l last:border-l-0 border-[#DADCE0] ${
+                            isToday
+                              ? 'bg-[#E8F0FE]/75'
+                              : isSelected
+                              ? 'bg-[#F0F4F9]'
+                              : ''
+                          }`}
                         >
-                          <div className="flex items-center justify-between gap-1">
-                            <span className="text-xs font-bold text-[#1F1F1F] group-hover/day:text-[#0B57D0] transition-colors">
-                              {formatShortArabicDate(dateISO)}
-                            </span>
-                            {isToday && (
-                              <span className="text-[10px] font-bold text-[#0B57D0]">
-                                اليوم
-                              </span>
-                            )}
-                          </div>
-                          <div className="text-[11px] font-mono-num text-[#444746] font-normal mt-0.5">
-                            {dateISO}
-                          </div>
-                        </button>
-                      </th>
-                    );
-                  })}
-                </tr>
-              </thead>
-
-              <tbody className="divide-y divide-[#DADCE0]">
-                {weeklyVisibleClassrooms.map((room) => {
-                  const imminent = imminentByRoom.get(room.id);
-                  const roomWeekStat = weeklyStatsByRoom.get(room.id) || { count: 0, hours: 0 };
-                  return (
-                    <tr key={room.id} className="align-top">
-                      {/* Classroom Column */}
-                      <td
-                        className={`px-4 py-3 border-l border-[#DADCE0] ${
-                          imminent ? 'bg-[#FEF7E0]/50' : 'bg-[#F8FAFD]'
-                        }`}
-                      >
-                        <div className="flex items-center justify-between gap-2">
-                          <div className="flex items-center gap-1.5 min-w-0">
-                            <span className="font-display text-xs font-bold text-[#1F1F1F] truncate">
-                              {room.name}
-                            </span>
-                            {imminent && (
-                              <button
-                                type="button"
-                                onClick={() => onSelectBooking(imminent.booking)}
-                                className="inline-flex items-center justify-center p-1 rounded-lg bg-[#FEF7E0] border border-[#FDE293] text-[#B06000] hover:bg-[#FDE293]/60 transition-colors shrink-0 cursor-pointer no-print"
-                                title={`تنبيه حجز وشيك خلال ${imminent.minutesUntil} دقيقة: ${imminent.booking.courseTitle}`}
-                                aria-label={`تنبيه متابعة ميدانية لقاعة ${room.name}`}
-                              >
-                                <BellRing className="w-3.5 h-3.5" />
-                              </button>
-                            )}
-                          </div>
-                          <span className="font-mono-num text-[10px] font-medium text-[#0B57D0] shrink-0">
-                            {room.code}
-                          </span>
-                        </div>
-
-                        <div className="text-[11px] text-[#444746] mt-1 flex flex-wrap items-center gap-1">
-                          <span>{room.capacity} مقعد</span>
-                          <span aria-hidden="true">·</span>
-                          {room.status === 'maintenance' ? (
-                            <span className="text-[#C5221F] inline-flex items-center gap-1">
-                              <Wrench className="w-3 h-3" />
-                              صيانة
-                            </span>
-                          ) : (
-                            <span className="text-[#137333]">جاهزة</span>
-                          )}
-                        </div>
-
-                        <div className="text-[11px] font-mono-num text-[#444746] mt-2 pt-2 border-t border-[#E8EAED]">
-                          {roomWeekStat.count} {roomWeekStat.count === 1 ? 'حجز' : 'حجوزات'} ·{' '}
-                          {roomWeekStat.hours} س
-                        </div>
-                      </td>
-
-                      {/* 7 Days for this Classroom */}
-                      {weekDates.map((dateISO) => {
-                        const cellList =
-                          weeklyByRoomAndDate.get(`${room.id}__${dateISO}`) || [];
-                        const isToday = dateISO === todayISO;
-                        return (
-                          <td
-                            key={dateISO}
-                            className={`p-2 border-l last:border-l-0 border-[#E8EAED] align-top min-h-[110px] ${
-                              isToday ? 'bg-[#E8F0FE]/25' : ''
-                            }`}
+                          <button
+                            type="button"
+                            onClick={() => handleOpenDaySchedule(dateISO)}
+                            className="w-full text-right group/day cursor-pointer"
+                            title="الانتقال إلى الجدول اليومي لهذا اليوم"
                           >
-                            <div className="space-y-1.5">
-                              {cellList.map((b) => {
-                                const isConfirmed = b.status === 'confirmed';
-                                const imminentMins = imminentBookingIds.get(b.id);
-                                return (
-                                  <button
-                                    key={b.id}
-                                    type="button"
-                                    onClick={() => onSelectBooking(b)}
-                                    className={`w-full text-right p-2 rounded-xl border transition-colors cursor-pointer ${
-                                      imminentMins !== undefined
-                                        ? 'bg-[#FCE8E6]/85 border-[#F6AEA9] hover:border-[#C5221F]'
-                                        : isConfirmed
-                                        ? 'bg-[#E8F0FE] border-[#AECBFA] hover:border-[#0B57D0]'
-                                        : 'bg-[#FEF7E0] border-[#FDE293] hover:border-[#B06000]'
-                                    }`}
-                                  >
-                                    <div className="flex items-center justify-between gap-1 text-[10px] font-mono-num font-medium">
-                                      <span className="text-[#041E49]">
-                                        {formatTime12Ar(b.startTime)} –{' '}
-                                        {formatTime12Ar(b.endTime)}
-                                      </span>
-                                      {imminentMins !== undefined ? (
-                                        <span className="inline-flex items-center gap-0.5 text-[#C5221F] font-semibold shrink-0">
-                                          <BellRing className="w-2.5 h-2.5" />
-                                          <span>
-                                            {imminentMins === 0 ? 'الآن' : `${imminentMins} د`}
-                                          </span>
-                                        </span>
-                                      ) : (
-                                        <span
-                                          className={`shrink-0 font-semibold ${
-                                            isConfirmed ? 'text-[#0B57D0]' : 'text-[#B06000]'
-                                          }`}
-                                        >
-                                          {isConfirmed ? 'معتمد' : 'مراجعة'}
-                                        </span>
-                                      )}
-                                    </div>
-                                    <div className="text-xs font-semibold text-[#1F1F1F] mt-1 line-clamp-2">
-                                      {b.courseTitle}
-                                    </div>
-                                    <div className="text-[11px] text-[#444746] mt-0.5 truncate">
-                                      {b.instructorName}
-                                    </div>
-                                    <div className="text-[10px] text-[#747775] mt-0.5 truncate">
-                                      {b.department} · {BOOKING_TYPE_LABEL[b.bookingType]}
-                                    </div>
-                                  </button>
-                                );
-                              })}
-
-                              {room.status === 'maintenance' ? (
-                                cellList.length === 0 && (
-                                  <div className="py-4 text-center text-[11px] text-[#747775]">
-                                    صيانة
-                                  </div>
-                                )
-                              ) : canQuickBook ? (
-                                <button
-                                  type="button"
-                                  onClick={() =>
-                                    onQuickBook(room.id, dateISO, '09:00', '11:00')
-                                  }
-                                  className={`w-full rounded-xl border border-transparent hover:border-dashed hover:border-[#0B57D0]/60 hover:bg-[#E8F0FE]/60 text-[#747775] hover:text-[#0B57D0] flex items-center justify-center gap-1 text-[11px] font-medium transition-colors cursor-pointer no-print ${
-                                    cellList.length === 0 ? 'py-5' : 'py-1.5'
-                                  }`}
-                                  title={`إضافة حجز في ${room.name} يوم ${dateISO}`}
-                                >
-                                  <Plus className="w-3.5 h-3.5" />
-                                  <span>حجز</span>
-                                </button>
-                              ) : (
-                                cellList.length === 0 && (
-                                  <div className="py-4 text-center text-[11px] text-[#BDC1C6]">
-                                    متاح
-                                  </div>
-                                )
+                            <div className="flex items-center justify-between gap-1">
+                              <span className="text-xs font-bold text-[#1F1F1F] group-hover/day:text-[#0B57D0] transition-colors truncate">
+                                {formatShortArabicDate(dateISO)}
+                              </span>
+                              {isToday && (
+                                <span className="text-[10px] font-bold text-[#0B57D0] shrink-0">
+                                  اليوم
+                                </span>
                               )}
                             </div>
-                          </td>
-                        );
-                      })}
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
+                            <div className="text-[10px] font-mono-num text-[#444746] font-normal mt-0.5">
+                              {dateISO}
+                            </div>
+                          </button>
+                        </th>
+                      );
+                    })}
+                  </tr>
+                </thead>
+
+                <tbody className="divide-y divide-[#DADCE0]">
+                  {weeklyVisibleClassrooms.map((room) => {
+                    const imminent = imminentByRoom.get(room.id);
+                    const roomWeekStat = weeklyStatsByRoom.get(room.id) || { count: 0, hours: 0 };
+                    return (
+                      <tr key={room.id} className="align-top">
+                        {/* Classroom Column */}
+                        <td
+                          className={`px-3 py-3 border-l border-[#DADCE0] ${
+                            imminent ? 'bg-[#FEF7E0]/50' : 'bg-[#F8FAFD]'
+                          }`}
+                        >
+                          <div className="flex items-center justify-between gap-1.5">
+                            <div className="flex items-center gap-1 min-w-0">
+                              <span className="font-display text-xs font-bold text-[#1F1F1F] truncate">
+                                {room.name}
+                              </span>
+                              {imminent && (
+                                <button
+                                  type="button"
+                                  onClick={() => onSelectBooking(imminent.booking)}
+                                  className="inline-flex items-center justify-center p-1 rounded-lg bg-[#FEF7E0] border border-[#FDE293] text-[#B06000] hover:bg-[#FDE293]/60 transition-colors shrink-0 cursor-pointer no-print"
+                                  title={`تنبيه حجز وشيك خلال ${imminent.minutesUntil} دقيقة: ${imminent.booking.courseTitle}`}
+                                  aria-label={`تنبيه متابعة ميدانية لقاعة ${room.name}`}
+                                >
+                                  <BellRing className="w-3.5 h-3.5" />
+                                </button>
+                              )}
+                            </div>
+                            <span className="font-mono-num text-[10px] font-medium text-[#0B57D0] shrink-0">
+                              {room.code}
+                            </span>
+                          </div>
+
+                          <div className="text-[11px] text-[#444746] mt-1 flex flex-wrap items-center gap-1">
+                            <span>{room.capacity} مقعد</span>
+                            <span aria-hidden="true">·</span>
+                            {room.status === 'maintenance' ? (
+                              <span className="text-[#C5221F] inline-flex items-center gap-1">
+                                <Wrench className="w-3 h-3" />
+                                صيانة
+                              </span>
+                            ) : (
+                              <span className="text-[#137333]">جاهزة</span>
+                            )}
+                          </div>
+
+                          <div className="text-[11px] font-mono-num text-[#444746] mt-2 pt-2 border-t border-[#E8EAED]">
+                            {roomWeekStat.count} {roomWeekStat.count === 1 ? 'حجز' : 'حجوزات'} ·{' '}
+                            {roomWeekStat.hours} س
+                          </div>
+                        </td>
+
+                        {/* 7 Days for this Classroom */}
+                        {weekDates.map((dateISO) => {
+                          const cellList =
+                            weeklyByRoomAndDate.get(`${room.id}__${dateISO}`) || [];
+                          const isToday = dateISO === todayISO;
+                          return (
+                            <td
+                              key={dateISO}
+                              className={`p-1.5 border-l last:border-l-0 border-[#E8EAED] align-top min-h-[104px] ${
+                                isToday ? 'bg-[#E8F0FE]/25' : ''
+                              }`}
+                            >
+                              <div className="space-y-1.5">
+                                {cellList.map((b) => {
+                                  const isConfirmed = b.status === 'confirmed';
+                                  const imminentMins = imminentBookingIds.get(b.id);
+                                  return (
+                                    <button
+                                      key={b.id}
+                                      type="button"
+                                      onClick={() => onSelectBooking(b)}
+                                      className={`w-full text-right p-2 rounded-xl border transition-colors cursor-pointer ${
+                                        imminentMins !== undefined
+                                          ? 'bg-[#FCE8E6]/85 border-[#F6AEA9] hover:border-[#C5221F]'
+                                          : isConfirmed
+                                          ? 'bg-[#E8F0FE] border-[#AECBFA] hover:border-[#0B57D0]'
+                                          : 'bg-[#FEF7E0] border-[#FDE293] hover:border-[#B06000]'
+                                      }`}
+                                    >
+                                      <div className="flex items-center justify-between gap-1 text-[10px] font-mono-num font-medium">
+                                        <span className="text-[#041E49] truncate">
+                                          {formatTime12Ar(b.startTime)} –{' '}
+                                          {formatTime12Ar(b.endTime)}
+                                        </span>
+                                        {imminentMins !== undefined ? (
+                                          <span className="inline-flex items-center gap-0.5 text-[#C5221F] font-semibold shrink-0">
+                                            <BellRing className="w-2.5 h-2.5" />
+                                            <span>
+                                              {imminentMins === 0 ? 'الآن' : `${imminentMins} د`}
+                                            </span>
+                                          </span>
+                                        ) : (
+                                          <span
+                                            className={`shrink-0 font-semibold ${
+                                              isConfirmed ? 'text-[#0B57D0]' : 'text-[#B06000]'
+                                            }`}
+                                          >
+                                            {isConfirmed ? 'معتمد' : 'مراجعة'}
+                                          </span>
+                                        )}
+                                      </div>
+                                      <div className="text-[11px] font-semibold text-[#1F1F1F] mt-1 line-clamp-2">
+                                        {b.courseTitle}
+                                      </div>
+                                      <div className="text-[10px] text-[#444746] mt-0.5 truncate">
+                                        {b.instructorName}
+                                      </div>
+                                      <div className="text-[10px] text-[#747775] mt-0.5 truncate">
+                                        {b.department} · {BOOKING_TYPE_LABEL[b.bookingType]}
+                                      </div>
+                                    </button>
+                                  );
+                                })}
+
+                                {room.status === 'maintenance' ? (
+                                  cellList.length === 0 && (
+                                    <div className="py-4 text-center text-[11px] text-[#747775]">
+                                      صيانة
+                                    </div>
+                                  )
+                                ) : canQuickBook ? (
+                                  <button
+                                    type="button"
+                                    onClick={() =>
+                                      onQuickBook(room.id, dateISO, '09:00', '11:00')
+                                    }
+                                    className={`w-full rounded-xl border border-transparent hover:border-dashed hover:border-[#0B57D0]/60 hover:bg-[#E8F0FE]/60 text-[#747775] hover:text-[#0B57D0] flex items-center justify-center gap-1 text-[11px] font-medium transition-colors cursor-pointer no-print ${
+                                      cellList.length === 0 ? 'py-5' : 'py-1.5'
+                                    }`}
+                                    title={`إضافة حجز في ${room.name} يوم ${dateISO}`}
+                                  >
+                                    <Plus className="w-3.5 h-3.5" />
+                                    <span>حجز</span>
+                                  </button>
+                                ) : (
+                                  cellList.length === 0 && (
+                                    <div className="py-4 text-center text-[11px] text-[#BDC1C6]">
+                                      متاح
+                                    </div>
+                                  )
+                                )}
+                              </div>
+                            </td>
+                          );
+                        })}
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          ) : (
+            /* Weekly Hourly Timetable: Operating Hours x 7 Days */
+            <div className="overflow-x-auto">
+              <table className="w-full border-collapse min-w-[920px] table-fixed">
+                <thead>
+                  <tr className="bg-[#F8FAFD] border-b border-[#DADCE0]">
+                    <th className="w-24 px-3 py-3 text-right text-xs font-semibold text-[#444746] border-l border-[#DADCE0] bg-[#F8FAFD]">
+                      الساعة
+                    </th>
+                    {weekDates.map((dateISO) => {
+                      const isToday = dateISO === todayISO;
+                      const isSelected = dateISO === selectedDate;
+                      return (
+                        <th
+                          key={dateISO}
+                          className={`px-2.5 py-2.5 text-right border-l last:border-l-0 border-[#DADCE0] ${
+                            isToday
+                              ? 'bg-[#E8F0FE]/75'
+                              : isSelected
+                              ? 'bg-[#F0F4F9]'
+                              : ''
+                          }`}
+                        >
+                          <button
+                            type="button"
+                            onClick={() => handleOpenDaySchedule(dateISO)}
+                            className="w-full text-right group/day cursor-pointer"
+                            title="الانتقال إلى الجدول اليومي لهذا اليوم"
+                          >
+                            <div className="flex items-center justify-between gap-1">
+                              <span className="text-xs font-bold text-[#1F1F1F] group-hover/day:text-[#0B57D0] transition-colors truncate">
+                                {formatShortArabicDate(dateISO)}
+                              </span>
+                              {isToday && (
+                                <span className="text-[10px] font-bold text-[#0B57D0] shrink-0">
+                                  اليوم
+                                </span>
+                              )}
+                            </div>
+                            <div className="text-[10px] font-mono-num text-[#444746] font-normal mt-0.5">
+                              {dateISO}
+                            </div>
+                          </button>
+                        </th>
+                      );
+                    })}
+                  </tr>
+                </thead>
+
+                <tbody className="divide-y divide-[#E8EAED]">
+                  {visibleTimelineHours.map((hour) => {
+                    const isCurrentHourRow =
+                      weekDates.includes(todayISO) && hour === currentHourPrefix;
+                    return (
+                      <tr
+                        key={hour}
+                        className={isCurrentHourRow ? 'bg-[#E8F0FE]/20' : 'hover:bg-[#F8FAFD]/70'}
+                      >
+                        <td
+                          className={`px-3 py-2.5 text-xs font-mono-num font-medium border-l border-[#DADCE0] whitespace-nowrap align-top ${
+                            isCurrentHourRow
+                              ? 'bg-[#E8F0FE] text-[#0B57D0] font-semibold'
+                              : 'bg-[#F8FAFD] text-[#444746]'
+                          }`}
+                        >
+                          {formatTime12Ar(hour)}
+                        </td>
+                        {weekDates.map((dateISO) => {
+                          const slotBookings = findBookingsForDayHour(dateISO, hour);
+                          const freeRoom = findFreeRoomForDayHour(dateISO, hour);
+                          const isToday = dateISO === todayISO;
+                          const slotMin = timeToMinutes(hour);
+
+                          return (
+                            <td
+                              key={dateISO}
+                              className={`p-1.5 border-l last:border-l-0 border-[#E8EAED] align-top ${
+                                isToday ? 'bg-[#E8F0FE]/20' : ''
+                              }`}
+                            >
+                              <div className="space-y-1">
+                                {slotBookings.map((b) => {
+                                  const isStartSlot =
+                                    timeToMinutes(b.startTime) >= slotMin &&
+                                    timeToMinutes(b.startTime) < slotMin + 60;
+                                  const isConfirmed = b.status === 'confirmed';
+                                  const imminentMins = imminentBookingIds.get(b.id);
+                                  return (
+                                    <button
+                                      key={b.id}
+                                      type="button"
+                                      onClick={() => onSelectBooking(b)}
+                                      className={`w-full text-right rounded-lg px-2 py-1.5 border transition-colors cursor-pointer ${
+                                        imminentMins !== undefined
+                                          ? 'bg-[#FCE8E6]/85 border-[#F6AEA9] hover:border-[#C5221F]'
+                                          : isConfirmed
+                                          ? 'bg-[#E8F0FE] border-[#AECBFA] hover:border-[#0B57D0]'
+                                          : 'bg-[#FEF7E0] border-[#FDE293] hover:border-[#B06000]'
+                                      }`}
+                                      title={`${b.roomName}: ${b.courseTitle} (${formatTime12Ar(
+                                        b.startTime
+                                      )} – ${formatTime12Ar(b.endTime)})`}
+                                    >
+                                      {isStartSlot ? (
+                                        <>
+                                          <div className="flex items-center justify-between gap-1 text-[10px]">
+                                            <span className="font-semibold text-[#0B57D0] truncate">
+                                              {b.roomName}
+                                            </span>
+                                            <span className="font-mono-num text-[#444746] shrink-0">
+                                              {formatTime12Ar(b.startTime)}
+                                            </span>
+                                          </div>
+                                          <div className="text-[11px] font-semibold text-[#1F1F1F] truncate mt-0.5">
+                                            {b.courseTitle}
+                                          </div>
+                                        </>
+                                      ) : (
+                                        <div className="flex items-center justify-between gap-1 text-[10px] text-[#444746]">
+                                          <span className="truncate font-medium text-[#1F1F1F]">
+                                            استمرار: {b.roomName}
+                                          </span>
+                                          <span className="font-mono-num shrink-0">
+                                            {formatTime12Ar(b.endTime)}
+                                          </span>
+                                        </div>
+                                      )}
+                                    </button>
+                                  );
+                                })}
+
+                                {freeRoom && canQuickBook ? (
+                                  <button
+                                    type="button"
+                                    onClick={() =>
+                                      onQuickBook(
+                                        freeRoom.id,
+                                        dateISO,
+                                        hour,
+                                        nextHourString(hour)
+                                      )
+                                    }
+                                    className={`w-full rounded-lg border border-transparent hover:border-dashed hover:border-[#0B57D0]/60 hover:bg-[#E8F0FE]/60 text-transparent hover:text-[#0B57D0] flex items-center justify-center gap-1 text-[11px] font-medium transition-colors cursor-pointer no-print ${
+                                      slotBookings.length === 0 ? 'h-9' : 'py-1'
+                                    }`}
+                                    title={`حجز ${freeRoom.name} يوم ${dateISO} الساعة ${formatTime12Ar(hour)}`}
+                                  >
+                                    <Plus className="w-3 h-3" />
+                                    <span>حجز</span>
+                                  </button>
+                                ) : slotBookings.length === 0 ? (
+                                  <div className="h-9 flex items-center justify-center text-[10px] text-[#BDC1C6]">
+                                    {weeklyVisibleClassrooms.every(
+                                      (r) => r.status === 'maintenance'
+                                    )
+                                      ? 'صيانة'
+                                      : 'متاح'}
+                                  </div>
+                                ) : null}
+                              </div>
+                            </td>
+                          );
+                        })}
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
         </div>
       ) : (
         /* Monthly Calendar View (Google Calendar Inspired) */
@@ -1097,6 +1354,119 @@ export function ScheduleGrid({
                     </div>
                   );
                 })}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+      </div>
+
+      {/* Live Bulletin Board PDF Preview & Print Modal */}
+      {printPreviewOpen && (
+        <div
+          className="fixed inset-0 z-50 bg-[#1F1F1F]/55 backdrop-blur-[2px] flex items-center justify-center p-3 sm:p-5 no-print"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="bulletin-preview-title"
+        >
+          <div className="bg-white border border-[#DADCE0] rounded-2xl g-elevation-modal max-w-6xl w-full max-h-[92vh] flex flex-col overflow-hidden">
+            {/* Modal Controls Header */}
+            <div className="px-5 py-4 bg-[#F8FAFD] border-b border-[#E8EAED] flex flex-col lg:flex-row lg:items-center justify-between gap-3 shrink-0">
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <h2
+                    id="bulletin-preview-title"
+                    className="font-display text-base font-bold text-[#1F1F1F]"
+                  >
+                    تنسيق ومعاينة الجدول للوحة الإعلانات (PDF)
+                  </h2>
+                  <p className="text-xs text-[#444746] mt-0.5">
+                    تصميم مخصص بمقاس A4 أفقي ومرتب للتعليق على لوحات الإعلانات في المجمع
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setPrintPreviewOpen(false)}
+                  className="lg:hidden p-2 rounded-xl text-[#444746] hover:bg-[#E9EEF6] cursor-pointer"
+                  aria-label="إغلاق المعاينة"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              <div className="flex flex-wrap items-center gap-2.5">
+                {/* Layout Scope Toggle */}
+                <div className="inline-flex items-center p-1 bg-[#F0F4F9] rounded-xl">
+                  {(
+                    [
+                      ['daily', 'يومي'],
+                      ['weekly', 'أسبوعي'],
+                      ['monthly', 'شهري'],
+                    ] as const
+                  ).map(([val, label]) => (
+                    <button
+                      key={val}
+                      type="button"
+                      onClick={() => setPrintMode(val)}
+                      className={`px-3 py-1 text-xs rounded-lg transition-colors whitespace-nowrap shrink-0 cursor-pointer ${
+                        printMode === val
+                          ? 'bg-white text-[#0B57D0] font-semibold g-elevation-1'
+                          : 'text-[#444746] font-medium hover:text-[#1F1F1F]'
+                      }`}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+
+                {/* Confirmed-Only Bulletin Toggle */}
+                <label className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl border border-[#DADCE0] bg-white text-xs text-[#1F1F1F] cursor-pointer whitespace-nowrap">
+                  <input
+                    type="checkbox"
+                    checked={printConfirmedOnly}
+                    onChange={(e) => setPrintConfirmedOnly(e.target.checked)}
+                    className="rounded border-[#DADCE0] text-[#0B57D0] focus:ring-[#0B57D0]"
+                  />
+                  <span>الحجوزات المعتمدة فقط</span>
+                </label>
+
+                <button
+                  type="button"
+                  onClick={() => window.print()}
+                  className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-[#0B57D0] text-white text-xs font-semibold hover:bg-[#0842A0] g-elevation-1 transition-colors whitespace-nowrap shrink-0 cursor-pointer"
+                >
+                  <Printer className="w-4 h-4" />
+                  <span>طباعة / حفظ كملف PDF</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setPrintPreviewOpen(false)}
+                  className="hidden lg:inline-flex p-2 rounded-xl text-[#444746] hover:bg-[#E9EEF6] hover:text-[#1F1F1F] transition-colors cursor-pointer"
+                  aria-label="إغلاق المعاينة"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+            </div>
+
+            {/* A4 Paper Preview Canvas */}
+            <div className="flex-1 overflow-y-auto bg-[#E9EEF6] p-4 sm:p-6">
+              <div className="max-w-[1060px] mx-auto g-elevation-2 rounded-2xl">
+                <BulletinBoardSheet
+                  mode={printMode}
+                  selectedDate={selectedDate}
+                  classrooms={classrooms}
+                  bookings={bookings}
+                  roomFilter={roomFilter}
+                  confirmedOnly={printConfirmedOnly}
+                  workStartHour={workStartHour}
+                  workEndHour={workEndHour}
+                  reportHeaderTitle={reportHeaderTitle}
+                  organizationName={organizationName}
+                  reportFooterNote={reportFooterNote}
+                  printedAtLabel={todayISO}
+                />
               </div>
             </div>
           </div>

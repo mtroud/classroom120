@@ -71,10 +71,12 @@ import {
   db,
   formatAuthErrorAr,
   handleFirestoreError,
+  logFirestoreError,
   provisionCredentialsUser,
   signInWithCredentials,
   signInWithGoogle,
   signOutUser,
+  translateFirestoreBookingErrorAr,
 } from './firebase';
 import {
   AccountRecord,
@@ -126,6 +128,9 @@ function DashboardWorkspace() {
   const [hasAdminsDoc, setHasAdminsDoc] = useState(false);
   const [myAccountDoc, setMyAccountDoc] = useState<AccountRecord | null>(null);
   const [myAccountResolved, setMyAccountResolved] = useState(false);
+  const [accountLinkError, setAccountLinkError] = useState<
+    'missing' | 'unlinked_or_mismatched' | 'permission_denied' | null
+  >(null);
   const [lastCreatedCredentials, setLastCreatedCredentials] =
     useState<CreatedCredentialsNotice | null>(null);
   const [batchCreatedCredentials, setBatchCreatedCredentials] = useState<
@@ -257,6 +262,7 @@ function DashboardWorkspace() {
         setHasAdminsDoc(false);
         setMyAccountDoc(null);
         setMyAccountResolved(false);
+        setAccountLinkError(null);
         setLastCreatedCredentials(null);
         setBatchCreatedCredentials(null);
         setClassrooms([]);
@@ -399,6 +405,7 @@ function DashboardWorkspace() {
     if (isMainAdminEmail && !verifiedNow) {
       setMyAccountDoc(null);
       setMyAccountResolved(true);
+      setAccountLinkError(null);
       setLoadingRooms(false);
       setLoadingDepartments(false);
       setLoadingBookings(false);
@@ -443,26 +450,41 @@ function DashboardWorkspace() {
           if (snapshot.exists()) {
             const data = snapshot.data() as AccountRecord;
             if (isPwd && (data.authType !== 'credentials' || data.authUid !== user.uid)) {
+              console.error('Account link mismatch detected for password user:', {
+                accountId: myAccId,
+                expectedAuthType: 'credentials',
+                actualAuthType: data.authType ?? null,
+                uidMatches: data.authUid === user.uid,
+              });
               setMyAccountDoc(null);
+              setAccountLinkError('unlinked_or_mismatched');
             } else {
               setMyAccountDoc({
                 ...data,
                 id: snapshot.id,
               });
+              setAccountLinkError(null);
             }
           } else {
             setMyAccountDoc(null);
+            setAccountLinkError('missing');
           }
           setMyAccountResolved(true);
         },
-        () => {
+        (error) => {
+          logFirestoreError(error, OperationType.GET, `accounts/${myAccId}`, {
+            isPasswordUser: isPwd,
+            accountId: myAccId,
+          });
           setMyAccountDoc(null);
+          setAccountLinkError(isPwd ? 'unlinked_or_mismatched' : 'permission_denied');
           setMyAccountResolved(true);
         }
       );
     } else {
       setMyAccountDoc(null);
       setMyAccountResolved(true);
+      setAccountLinkError(null);
     }
 
     // 3. Full accounts directory (bootstrapped admin only)
@@ -1006,27 +1028,119 @@ function DashboardWorkspace() {
   };
 
   const handleSaveBooking = async (draft: BookingDraft) => {
-    if (!user || !access.canCreateBookings) return;
-    const targetRoom = classrooms.find((r) => r.id === draft.roomId);
-    if (!targetRoom) {
-      throw new Error('القاعة المحددة غير موجودة.');
+    if (!user) {
+      throw new Error('يرجى تسجيل الدخول أولاً لإرسال طلب الحجز.');
+    }
+    if (access.isSuspended) {
+      throw new Error(translateFirestoreBookingErrorAr(null, { isSuspended: true }));
+    }
+    if (access.role === 'viewer') {
+      throw new Error(translateFirestoreBookingErrorAr(null, { isViewer: true }));
+    }
+    if (isPasswordUser) {
+      if (!myAccountDoc) {
+        throw new Error(
+          translateFirestoreBookingErrorAr(null, {
+            accountMissing: accountLinkError === 'missing',
+            accountUnlinked: accountLinkError !== 'missing',
+          })
+        );
+      }
+      if (myAccountDoc.authType !== 'credentials' || myAccountDoc.authUid !== user.uid) {
+        throw new Error(translateFirestoreBookingErrorAr(null, { accountUnlinked: true }));
+      }
+      if (myAccountDoc.status !== 'active') {
+        throw new Error(translateFirestoreBookingErrorAr(null, { isSuspended: true }));
+      }
+    }
+    if (!access.canCreateBookings) {
+      throw new Error('حسابك لا يملك صلاحية إنشاء أو تعديل طلبات الحجز.');
     }
 
-    const effectiveDepartment =
-      access.role === 'coordinator' && access.branchName.trim().length >= 2
-        ? (myAccountDoc?.branchName || access.branchName).slice(
-            0,
-            BLUEPRINT_LIMITS.DEPARTMENT_MAX
-          )
-        : draft.department.trim().slice(0, BLUEPRINT_LIMITS.DEPARTMENT_MAX);
+    const targetRoom = classrooms.find((r) => r.id === draft.roomId);
+    if (!targetRoom || !BLUEPRINT_LIMITS.ID_PATTERN.test(targetRoom.id)) {
+      throw new Error(translateFirestoreBookingErrorAr(null, { roomMissing: true }));
+    }
 
-    const effectiveStatus = draft.id
-      ? access.canApproveBookings
-        ? draft.status
-        : 'pending'
-      : access.canApproveBookings
-        ? draft.status
-        : 'pending';
+    // Verify classroom exists in Firestore and its document `id` matches `roomId`
+    try {
+      const roomSnap = await getDoc(doc(db, 'classrooms', targetRoom.id));
+      if (!roomSnap.exists()) {
+        throw new Error(translateFirestoreBookingErrorAr(null, { roomMissing: true }));
+      }
+      const roomData = roomSnap.data() as Partial<Classroom> | undefined;
+      if (roomData?.id !== targetRoom.id) {
+        throw new Error(translateFirestoreBookingErrorAr(null, { roomMismatch: true }));
+      }
+    } catch (roomCheckErr) {
+      if (
+        roomCheckErr instanceof Error &&
+        (roomCheckErr.message.includes('القاعة المختارة') ||
+          roomCheckErr.message.includes('قاعدة البيانات'))
+      ) {
+        throw roomCheckErr;
+      }
+      const code =
+        typeof roomCheckErr === 'object' && roomCheckErr !== null && 'code' in roomCheckErr
+          ? String((roomCheckErr as { code?: unknown }).code || '').toLowerCase()
+          : '';
+      if (code === 'permission-denied' || code === 'firestore/permission-denied') {
+        logFirestoreError(roomCheckErr, OperationType.GET, `classrooms/${targetRoom.id}`);
+        throw new Error(translateFirestoreBookingErrorAr(roomCheckErr, { roomMissing: true }));
+      }
+    }
+
+    const accountBranchTrimmed = (myAccountDoc?.branchName || '').trim();
+    let effectiveDepartment = draft.department.trim().slice(0, BLUEPRINT_LIMITS.DEPARTMENT_MAX);
+    if (access.role === 'coordinator') {
+      const coordinatorBranch = (myAccountDoc?.branchName || access.branchName || '').trim();
+      if (coordinatorBranch.length < 2) {
+        throw new Error(translateFirestoreBookingErrorAr(null, { departmentMismatch: true }));
+      }
+      effectiveDepartment = coordinatorBranch.slice(0, BLUEPRINT_LIMITS.DEPARTMENT_MAX);
+      if (
+        draft.department.trim().length >= 2 &&
+        draft.department.trim() !== effectiveDepartment &&
+        myAccountDoc?.role === 'coordinator'
+      ) {
+        throw new Error(translateFirestoreBookingErrorAr(null, { departmentMismatch: true }));
+      }
+    }
+
+    const cleanRoomName = (
+      targetRoom.name.trim().length >= 2 ? targetRoom.name.trim() : 'قاعة دراسية'
+    ).slice(0, BLUEPRINT_LIMITS.ROOM_NAME_MAX);
+    const cleanCourseTitle = draft.courseTitle
+      .trim()
+      .slice(0, BLUEPRINT_LIMITS.COURSE_TITLE_MAX);
+    const cleanInstructor = draft.instructorName
+      .trim()
+      .slice(0, BLUEPRINT_LIMITS.INSTRUCTOR_MAX);
+    const cleanNotes = draft.notes.trim().slice(0, BLUEPRINT_LIMITS.NOTES_MAX);
+    const safeAttendees = Math.trunc(Number(draft.attendeesCount) || 0);
+    const validBookingType =
+      draft.bookingType === 'lecture' ||
+      draft.bookingType === 'workshop' ||
+      draft.bookingType === 'exam' ||
+      draft.bookingType === 'seminar';
+
+    if (
+      cleanRoomName.length < 2 ||
+      cleanCourseTitle.length < 2 ||
+      cleanInstructor.length < 2 ||
+      effectiveDepartment.length < 2 ||
+      !validBookingType ||
+      !BLUEPRINT_LIMITS.DATE_PATTERN.test(draft.date) ||
+      !BLUEPRINT_LIMITS.TIME_PATTERN.test(draft.startTime) ||
+      !BLUEPRINT_LIMITS.TIME_PATTERN.test(draft.endTime) ||
+      draft.startTime >= draft.endTime ||
+      safeAttendees < 1 ||
+      safeAttendees > BLUEPRINT_LIMITS.CAPACITY_MAX
+    ) {
+      throw new Error(translateFirestoreBookingErrorAr(null, { payloadInvalid: true }));
+    }
+
+    const effectiveStatus: BookingStatus = access.canApproveBookings ? draft.status : 'pending';
 
     if (isActiveBooking({ status: effectiveStatus })) {
       const conflicts = findBookingConflicts(bookings, {
@@ -1044,21 +1158,26 @@ function DashboardWorkspace() {
       }
     }
 
+    const deptMatchesAccount =
+      !myAccountDoc ||
+      myAccountDoc.role !== 'coordinator' ||
+      effectiveDepartment === accountBranchTrimmed;
+
     if (draft.id) {
       const path = `bookings/${draft.id}`;
       try {
         const updatePayload: Record<string, unknown> = {
           roomId: targetRoom.id,
-          roomName: targetRoom.name.slice(0, BLUEPRINT_LIMITS.ROOM_NAME_MAX),
-          courseTitle: draft.courseTitle,
-          instructorName: draft.instructorName,
+          roomName: cleanRoomName,
+          courseTitle: cleanCourseTitle,
+          instructorName: cleanInstructor,
           department: effectiveDepartment,
           bookingType: draft.bookingType,
           date: draft.date,
           startTime: draft.startTime,
           endTime: draft.endTime,
-          attendeesCount: Math.trunc(draft.attendeesCount),
-          notes: draft.notes,
+          attendeesCount: safeAttendees,
+          notes: cleanNotes,
           updatedAt: serverTimestamp(),
         };
         if (access.canApproveBookings) {
@@ -1068,37 +1187,44 @@ function DashboardWorkspace() {
         void recordAuditLog({
           entityType: 'booking',
           entityId: draft.id,
-          entityLabel: `${targetRoom.name} — ${draft.courseTitle}`,
+          entityLabel: `${cleanRoomName} — ${cleanCourseTitle}`,
           action: 'update',
           summary: `تعديل حجز ${effectiveDepartment} (${draft.date} من ${draft.startTime} إلى ${draft.endTime})`,
         });
         showToast('تم تحديث الحجز في الجدول الدراسي');
       } catch (err) {
-        handleFirestoreError(err, OperationType.UPDATE, path);
+        logFirestoreError(err, OperationType.UPDATE, path, {
+          role: access.role,
+          accountRole: myAccountDoc?.role ?? null,
+          accountStatus: myAccountDoc?.status ?? null,
+          deptMatchesAccount,
+          roomId: targetRoom.id,
+        });
+        throw new Error(
+          translateFirestoreBookingErrorAr(err, {
+            isSuspended: myAccountDoc?.status === 'suspended',
+            isViewer: myAccountDoc?.role === 'viewer',
+            departmentMismatch: !deptMatchesAccount,
+          })
+        );
       }
     } else {
       const newId = generateSafeId('bk');
       const path = `bookings/${newId}`;
-      const nextStatus = access.canApproveBookings ? draft.status : 'pending';
-      const safeRoomName = (
-        targetRoom.name.trim().length >= 2
-          ? targetRoom.name.trim()
-          : 'قاعة دراسية'
-      ).slice(0, BLUEPRINT_LIMITS.ROOM_NAME_MAX);
-      const safeAttendees = Math.max(
-        1,
-        Math.min(
-          BLUEPRINT_LIMITS.CAPACITY_MAX,
-          Math.trunc(Number(draft.attendeesCount) || 1)
-        )
-      );
+      const nextStatus: BookingStatus = access.canApproveBookings ? draft.status : 'pending';
+      const creatorName = (
+        myAccountDoc?.displayName?.trim() ||
+        user.displayName?.trim() ||
+        'مستخدم'
+      ).slice(0, BLUEPRINT_LIMITS.DISPLAY_NAME_MAX);
+
       try {
         await setDoc(doc(db, 'bookings', newId), {
           id: newId,
           roomId: targetRoom.id,
-          roomName: safeRoomName,
-          courseTitle: draft.courseTitle.trim().slice(0, BLUEPRINT_LIMITS.COURSE_TITLE_MAX),
-          instructorName: draft.instructorName.trim().slice(0, BLUEPRINT_LIMITS.INSTRUCTOR_MAX),
+          roomName: cleanRoomName,
+          courseTitle: cleanCourseTitle,
+          instructorName: cleanInstructor,
           department: effectiveDepartment,
           bookingType: draft.bookingType,
           date: draft.date,
@@ -1106,20 +1232,16 @@ function DashboardWorkspace() {
           endTime: draft.endTime,
           attendeesCount: safeAttendees,
           status: nextStatus,
-          notes: draft.notes.trim().slice(0, BLUEPRINT_LIMITS.NOTES_MAX),
+          notes: cleanNotes,
           creatorId: user.uid,
-          creatorName: (
-            myAccountDoc?.displayName?.trim() ||
-            user.displayName?.trim() ||
-            'مستخدم'
-          ).slice(0, 80),
+          creatorName,
           createdAt: serverTimestamp(),
           updatedAt: serverTimestamp(),
         });
         void recordAuditLog({
           entityType: 'booking',
           entityId: newId,
-          entityLabel: `${safeRoomName} — ${draft.courseTitle}`,
+          entityLabel: `${cleanRoomName} — ${cleanCourseTitle}`,
           action: 'create',
           summary: `حجز جديد لقسم ${effectiveDepartment} (${draft.date} من ${draft.startTime} إلى ${draft.endTime}) · ${BOOKING_STATUS_LABEL[nextStatus]}`,
         });
@@ -1129,16 +1251,30 @@ function DashboardWorkspace() {
             : 'تم إرسال طلب الحجز بنجاح'
         );
       } catch (err) {
-        console.error('Booking create rejected:', {
+        logFirestoreError(err, OperationType.CREATE, path, {
           role: access.role,
-          accountRole: myAccountDoc?.role,
-          accountStatus: myAccountDoc?.status,
+          accountRole: myAccountDoc?.role ?? null,
+          accountStatus: myAccountDoc?.status ?? null,
+          accountAuthType: myAccountDoc?.authType ?? null,
+          uidMatches: myAccountDoc?.authUid === user.uid,
           nextStatus,
-          deptMatchesAccount:
-            effectiveDepartment.trim() === (myAccountDoc?.branchName || '').trim(),
+          deptMatchesAccount,
           roomId: targetRoom.id,
         });
-        handleFirestoreError(err, OperationType.CREATE, path);
+        throw new Error(
+          translateFirestoreBookingErrorAr(err, {
+            accountMissing: isPasswordUser && !myAccountDoc && accountLinkError === 'missing',
+            accountUnlinked:
+              isPasswordUser &&
+              (!myAccountDoc ||
+                myAccountDoc.authType !== 'credentials' ||
+                myAccountDoc.authUid !== user.uid),
+            isSuspended: myAccountDoc?.status === 'suspended',
+            isViewer: myAccountDoc?.role === 'viewer',
+            departmentMismatch: !deptMatchesAccount,
+            statusNotAllowed: !access.canApproveBookings && nextStatus !== 'pending',
+          })
+        );
       }
     }
   };
@@ -1646,7 +1782,9 @@ function DashboardWorkspace() {
       id: acc.id,
       email: acc.email,
       username: acc.username || '',
-      authType: acc.authType || (isInternalAuthEmail(acc.email) ? 'credentials' : 'google'),
+      authType:
+        acc.authType ||
+        (acc.authUid?.trim() || isInternalAuthEmail(acc.email) ? 'credentials' : 'google'),
       authUid: acc.authUid || '',
       displayName: acc.displayName,
       branchName: acc.branchName,
@@ -1666,6 +1804,11 @@ function DashboardWorkspace() {
 
     if (draft.id || existing) {
       try {
+        const resolvedAuthUid = (
+          draft.authUid !== undefined ? draft.authUid : existing?.authUid || ''
+        )
+          .trim()
+          .slice(0, 128);
         await updateDoc(doc(db, 'accounts', accId), {
           email: draft.email,
           username: (draft.username || existing?.username || '').slice(
@@ -1673,7 +1816,7 @@ function DashboardWorkspace() {
             BLUEPRINT_LIMITS.USERNAME_MAX
           ),
           authType: draft.authType || existing?.authType || 'google',
-          authUid: (draft.authUid || existing?.authUid || '').slice(0, 128),
+          authUid: resolvedAuthUid,
           displayName: draft.displayName,
           branchName: draft.branchName,
           role: draft.role,
@@ -2161,13 +2304,17 @@ function DashboardWorkspace() {
             <h1 className="font-display text-lg font-bold text-[#1F1F1F]">
               {access.isSuspended
                 ? 'تم تعليق صلاحية هذا الحساب مؤقتاً'
-                : 'الحساب غير مضاف في سجل الصلاحيات'}
+                : accountLinkError === 'unlinked_or_mismatched'
+                  ? 'الحساب غير مربوط بملف الصلاحيات'
+                  : 'الحساب غير مضاف في سجل الصلاحيات'}
             </h1>
             <p className="text-xs text-[#444746] leading-relaxed">
               {access.isSuspended
                 ? 'يرجى مراجعة إدارة قسم مجمع سيد الشهداء (ع) الخدمي لإعادة تفعيل الحساب.'
                 : isPasswordUser
-                  ? 'هذا اليوزر غير مربوط بحساب فعال في سجل الصلاحيات. يرجى مراجعة مدير المنظومة.'
+                  ? accountLinkError === 'unlinked_or_mismatched'
+                    ? 'تم تسجيل الدخول بنجاح، ولكن وثيقة الحساب في سجل الصلاحيات غير مربوطة بمعرّف الدخول أو نوع المصادقة (credentials). يرجى مراجعة مدير المنظومة لتحديث ربط الحساب.'
+                    : 'هذا اليوزر غير مضاف أو غير مربوط بحساب فعال في سجل الصلاحيات. يرجى مراجعة مدير المنظومة.'
                   : 'النظام مضبوط حالياً على وضع الدخول الحصري. يرجى تزويد مدير المنظومة ببريدك الإلكتروني لإضافتك ومنحك الصلاحية المناسبة.'}
             </p>
             {displayedIdentifier && (
@@ -2526,6 +2673,8 @@ function DashboardWorkspace() {
               workStartHour={systemSettings.workStartHour}
               workEndHour={systemSettings.workEndHour}
               reportHeaderTitle={systemSettings.reportHeaderTitle}
+              organizationName={systemSettings.organizationName}
+              reportFooterNote={systemSettings.reportFooterNote}
             />
           )}
 
