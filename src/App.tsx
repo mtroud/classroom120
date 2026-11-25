@@ -47,6 +47,10 @@ import { BookingDraft, BookingModal } from './components/BookingModal';
 import { BookingsTableView } from './components/BookingsTableView';
 import { ClassroomDraft, ClassroomModal } from './components/ClassroomModal';
 import { ClassroomsView } from './components/ClassroomsView';
+import {
+  RoomOccupancyStat,
+  ScheduledHoursCard,
+} from './components/ScheduledHoursCard';
 import { DepartmentDraft, DepartmentModal } from './components/DepartmentModal';
 import { DepartmentsView } from './components/DepartmentsView';
 import { ErrorBoundary } from './components/ErrorBoundary';
@@ -103,9 +107,11 @@ import {
   calculateDurationHours,
   findBookingConflicts,
   formatArabicDate,
+  formatShortArabicDate,
   formatTime12Ar,
   getTodayISO,
   isActiveBooking,
+  timeToMinutes,
 } from './utils/schedule';
 
 function generateSafeId(prefix: string): string {
@@ -788,9 +794,15 @@ function DashboardWorkspace() {
     );
   }, [access.branchName, access.role, bookings, user]);
 
-  // KPI metrics for selectedDate
+  // KPI metrics & per-classroom occupancy for selectedDate
   const metrics = useMemo(() => {
+    const startMins = timeToMinutes(systemSettings.workStartHour || '08:00');
+    const endMins = timeToMinutes(systemSettings.workEndHour || '21:00');
+    const dailyOperatingHours =
+      endMins > startMins ? Math.round(((endMins - startMins) / 60) * 10) / 10 : 13;
+
     const availableRooms = classrooms.filter((r) => r.status === 'available').length;
+    const maintenanceRooms = classrooms.length - availableRooms;
     const todayActive = bookings.filter(
       (b) => b.date === selectedDate && isActiveBooking(b)
     );
@@ -806,14 +818,91 @@ function DashboardWorkspace() {
       (sum, b) => sum + calculateDurationHours(b.startTime, b.endTime),
       0
     );
+
+    const roomOccupancyList: RoomOccupancyStat[] = classrooms.map((room) => {
+      const isMaintenance = room.status === 'maintenance';
+      if (isMaintenance) {
+        return {
+          id: room.id,
+          name: room.name,
+          code: room.code,
+          floor: room.floor,
+          capacity: room.capacity,
+          isMaintenance: true,
+          sessionsCount: 0,
+          confirmedHours: 0,
+          pendingHours: 0,
+          totalHours: 0,
+          confirmedPct: 0,
+          pendingPct: 0,
+          totalPct: 0,
+          remainingPct: 0,
+        };
+      }
+
+      const roomBookings = todayActive.filter((b) => b.roomId === room.id);
+      const confirmedHrsRaw = roomBookings
+        .filter((b) => b.status === 'confirmed')
+        .reduce((sum, b) => sum + calculateDurationHours(b.startTime, b.endTime), 0);
+      const pendingHrsRaw = roomBookings
+        .filter((b) => b.status === 'pending')
+        .reduce((sum, b) => sum + calculateDurationHours(b.startTime, b.endTime), 0);
+      const totalHrsRaw = confirmedHrsRaw + pendingHrsRaw;
+
+      const totalPct =
+        dailyOperatingHours > 0
+          ? Math.min(100, Math.round((totalHrsRaw / dailyOperatingHours) * 100))
+          : 0;
+      const confirmedPct =
+        dailyOperatingHours > 0
+          ? Math.min(totalPct, Math.round((confirmedHrsRaw / dailyOperatingHours) * 100))
+          : 0;
+      const pendingPct = Math.max(0, totalPct - confirmedPct);
+
+      return {
+        id: room.id,
+        name: room.name,
+        code: room.code,
+        floor: room.floor,
+        capacity: room.capacity,
+        isMaintenance: false,
+        sessionsCount: roomBookings.length,
+        confirmedHours: Math.round(confirmedHrsRaw * 10) / 10,
+        pendingHours: Math.round(pendingHrsRaw * 10) / 10,
+        totalHours: Math.round(totalHrsRaw * 10) / 10,
+        confirmedPct,
+        pendingPct,
+        totalPct,
+        remainingPct: Math.max(0, 100 - totalPct),
+      };
+    });
+
+    const totalAvailableCapacityHours = availableRooms * dailyOperatingHours;
+    const bookedAvailableHours = roomOccupancyList
+      .filter((r) => !r.isMaintenance)
+      .reduce((sum, r) => sum + r.totalHours, 0);
+    const overallOccupancyPct =
+      totalAvailableCapacityHours > 0
+        ? Math.min(100, Math.round((bookedAvailableHours / totalAvailableCapacityHours) * 100))
+        : 0;
+    const readinessPct =
+      classrooms.length > 0
+        ? Math.round((availableRooms / classrooms.length) * 100)
+        : 0;
+
     return {
       availableRooms,
+      maintenanceRooms,
       totalRooms: classrooms.length,
+      readinessPct,
       todayCount: todayActive.length,
       todayConfirmedCount,
       pendingCount,
       scopedPendingCount,
       scheduledHours: Math.round(scheduledHours * 10) / 10,
+      dailyOperatingHours,
+      overallOccupancyPct,
+      roomOccupancyList,
     };
   }, [
     access.role,
@@ -821,6 +910,8 @@ function DashboardWorkspace() {
     classrooms,
     coordinatorVisibleBookings,
     selectedDate,
+    systemSettings.workStartHour,
+    systemSettings.workEndHour,
   ]);
 
   const isTabAllowed = useMemo(
@@ -2289,26 +2380,65 @@ function DashboardWorkspace() {
           </header>
 
           <main className="flex-1 p-5 lg:p-8 max-w-[1440px] w-full mx-auto space-y-6">
-            {/* 4-column Summary KPI Strip (Google M3 Single-Elevation Metric Cards) */}
-            <section className="grid grid-cols-2 lg:grid-cols-4 gap-4 no-print">
-              <div className="bg-white border border-[#DADCE0] rounded-2xl p-4">
-                <div className="flex items-center justify-between gap-2">
-                  <span className="text-xs font-medium text-[#444746]">القاعات الجاهزة للتشغيل</span>
-                  <span className="w-2 h-2 rounded-sm bg-[#34A853] shrink-0" aria-hidden="true" />
+            {/* Summary KPI Strip + Scheduled Study Hours with Recharts Pie Charts */}
+            <section
+              className={`grid gap-4 no-print ${
+                activeTab === 'schedule'
+                  ? 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-12'
+                  : 'grid-cols-2 lg:grid-cols-4'
+              }`}
+            >
+              <div
+                className={`bg-white border border-[#DADCE0] rounded-2xl p-4 flex flex-col justify-between ${
+                  activeTab === 'schedule' ? 'lg:col-span-4' : ''
+                }`}
+              >
+                <div>
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-xs font-medium text-[#444746]">القاعات الجاهزة للتشغيل</span>
+                    <span className="w-2 h-2 rounded-sm bg-[#34A853] shrink-0" aria-hidden="true" />
+                  </div>
+                  <div className="font-mono-num text-2xl font-semibold text-[#1F1F1F] mt-1.5">
+                    {metrics.availableRooms} / {metrics.totalRooms}
+                  </div>
                 </div>
-                <div className="font-mono-num text-2xl font-semibold text-[#1F1F1F] mt-1.5">
-                  {metrics.availableRooms} / {metrics.totalRooms}
+                <div className="mt-2.5 space-y-1">
+                  <div className="w-full h-1.5 bg-[#E8EAED] rounded-sm overflow-hidden">
+                    <div
+                      className="h-full bg-[#34A853]"
+                      style={{ width: `${metrics.readinessPct}%` }}
+                    />
+                  </div>
+                  <div className="text-[11px] text-[#747775]">
+                    {metrics.maintenanceRooms > 0
+                      ? `${metrics.maintenanceRooms} قيد الصيانة`
+                      : 'جاهزية تشغيلية كاملة'}
+                  </div>
                 </div>
               </div>
-              <div className="bg-white border border-[#DADCE0] rounded-2xl p-4">
-                <div className="flex items-center justify-between gap-2">
-                  <span className="text-xs font-medium text-[#444746]">حجوزات اليوم المحدد</span>
-                  <span className="w-2 h-2 rounded-sm bg-[#4285F4] shrink-0" aria-hidden="true" />
+
+              <div
+                className={`bg-white border border-[#DADCE0] rounded-2xl p-4 flex flex-col justify-between ${
+                  activeTab === 'schedule' ? 'lg:col-span-4' : ''
+                }`}
+              >
+                <div>
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-xs font-medium text-[#444746]">حجوزات اليوم المحدد</span>
+                    <span className="w-2 h-2 rounded-sm bg-[#4285F4] shrink-0" aria-hidden="true" />
+                  </div>
+                  <div className="font-mono-num text-2xl font-semibold text-[#1F1F1F] mt-1.5">
+                    {metrics.todayCount}
+                  </div>
                 </div>
-                <div className="font-mono-num text-2xl font-semibold text-[#1F1F1F] mt-1.5">
-                  {metrics.todayCount}
+                <div className="mt-2.5 text-[11px] text-[#747775] truncate">
+                  {formatShortArabicDate(selectedDate)} · مؤكد{' '}
+                  <span className="font-mono-num font-semibold text-[#1F1F1F]">
+                    {metrics.todayConfirmedCount}
+                  </span>
                 </div>
               </div>
+
               {access.canViewBookingsTab ? (
                 <button
                   type="button"
@@ -2316,40 +2446,68 @@ function DashboardWorkspace() {
                     setBookingsStatusFilter('pending');
                     setActiveTab('bookings');
                   }}
-                  className="bg-white border border-[#DADCE0] rounded-2xl p-4 text-right hover:border-[#FDE293] hover:bg-[#FEF7E0]/30 transition-colors cursor-pointer"
+                  className={`bg-white border border-[#DADCE0] rounded-2xl p-4 text-right hover:border-[#FDE293] hover:bg-[#FEF7E0]/30 transition-colors cursor-pointer flex flex-col justify-between ${
+                    activeTab === 'schedule' ? 'sm:col-span-2 lg:col-span-4' : ''
+                  }`}
                 >
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="text-xs font-medium text-[#444746]">
-                      {access.role === 'coordinator'
-                        ? 'طلبات قسمي المعلقة'
-                        : 'طلبات بانتظار موافقة الإدارة'}
-                    </span>
-                    <span className="w-2 h-2 rounded-sm bg-[#FBBC04] shrink-0" aria-hidden="true" />
+                  <div>
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-xs font-medium text-[#444746]">
+                        {access.role === 'coordinator'
+                          ? 'طلبات قسمي المعلقة'
+                          : 'طلبات بانتظار موافقة الإدارة'}
+                      </span>
+                      <span className="w-2 h-2 rounded-sm bg-[#FBBC04] shrink-0" aria-hidden="true" />
+                    </div>
+                    <div className="font-mono-num text-2xl font-semibold text-[#B06000] mt-1.5">
+                      {metrics.scopedPendingCount}
+                    </div>
                   </div>
-                  <div className="font-mono-num text-2xl font-semibold text-[#B06000] mt-1.5">
-                    {metrics.scopedPendingCount}
+                  <div className="mt-2.5 text-[11px] text-[#747775]">
+                    {metrics.scopedPendingCount > 0
+                      ? 'اضغط لمراجعة الطلبات المعلقة'
+                      : 'لا توجد طلبات معلقة حالياً'}
                   </div>
                 </button>
               ) : (
-                <div className="bg-white border border-[#DADCE0] rounded-2xl p-4">
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="text-xs font-medium text-[#444746]">الحجوزات المؤكدة اليوم</span>
-                    <span className="w-2 h-2 rounded-sm bg-[#34A853] shrink-0" aria-hidden="true" />
+                <div
+                  className={`bg-white border border-[#DADCE0] rounded-2xl p-4 flex flex-col justify-between ${
+                    activeTab === 'schedule' ? 'sm:col-span-2 lg:col-span-4' : ''
+                  }`}
+                >
+                  <div>
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-xs font-medium text-[#444746]">الحجوزات المؤكدة اليوم</span>
+                      <span className="w-2 h-2 rounded-sm bg-[#34A853] shrink-0" aria-hidden="true" />
+                    </div>
+                    <div className="font-mono-num text-2xl font-semibold text-[#137333] mt-1.5">
+                      {metrics.todayConfirmedCount}
+                    </div>
                   </div>
-                  <div className="font-mono-num text-2xl font-semibold text-[#137333] mt-1.5">
-                    {metrics.todayConfirmedCount}
+                  <div className="mt-2.5 text-[11px] text-[#747775]">
+                    من أصل{' '}
+                    <span className="font-mono-num font-semibold text-[#1F1F1F]">
+                      {metrics.todayCount}
+                    </span>{' '}
+                    حجزاً فعالاً
                   </div>
                 </div>
               )}
-              <div className="bg-white border border-[#DADCE0] rounded-2xl p-4">
-                <div className="flex items-center justify-between gap-2">
-                  <span className="text-xs font-medium text-[#444746]">ساعات الدراسة المجدولة</span>
-                  <span className="w-2 h-2 rounded-sm bg-[#0B57D0] shrink-0" aria-hidden="true" />
-                </div>
-                <div className="font-mono-num text-2xl font-semibold text-[#0B57D0] mt-1.5">
-                  {metrics.scheduledHours} س
-                </div>
-              </div>
+
+              <ScheduledHoursCard
+                selectedDate={selectedDate}
+                scheduledHours={metrics.scheduledHours}
+                dailyOperatingHours={metrics.dailyOperatingHours}
+                availableRoomsCount={metrics.availableRooms}
+                overallOccupancyPct={metrics.overallOccupancyPct}
+                rooms={metrics.roomOccupancyList}
+                isLoading={loadingRooms || loadingBookings}
+                canQuickBook={access.canCreateBookings}
+                onQuickBookRoom={(roomId) =>
+                  openNewBooking(roomId, selectedDate, '09:00', '11:00')
+                }
+                compact={activeTab !== 'schedule'}
+              />
             </section>
 
           {/* Active Workspace View */}

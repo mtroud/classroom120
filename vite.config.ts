@@ -6,7 +6,7 @@ import {defineConfig} from 'vite';
 
 export default defineConfig(() => {
   return {
-    base: '/classroom120/',
+    base: process.env.VERCEL ? '/' : '/classroom120/',
     plugins: [
       react(),
       tailwindcss(),
